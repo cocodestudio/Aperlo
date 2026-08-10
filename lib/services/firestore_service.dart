@@ -26,14 +26,14 @@ class FirestoreService {
     final snap = await q.get();
     var templates = snap.docs.map((d) => Template.fromMap(d.data())).toList();
     
-    // Sort templates: Newest first (based on createdAt), then fallback to ID
+    // Sort templates: Newest first (based on createdAt), then fallback to ID (newest first)
     templates.sort((a, b) {
       final aTime = a.createdAt ?? 0;
       final bTime = b.createdAt ?? 0;
       if (aTime != bTime) {
         return bTime.compareTo(aTime); // Descending (newest first)
       }
-      return a.id.compareTo(b.id);
+      return b.id.compareTo(a.id); // Fallback: newest ID first
     });
     
     return {

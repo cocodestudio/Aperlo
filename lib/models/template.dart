@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 
 class Template {
@@ -66,6 +67,20 @@ class Template {
 
   static final _secretKey = enc.Key.fromUtf8('FrameKitSecureKey2026!@#\$1234567');
 
+  static int? _parseCreatedAt(dynamic val) {
+    if (val == null) return null;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is Timestamp) return val.millisecondsSinceEpoch;
+    if (val is String) {
+      final parsedInt = int.tryParse(val);
+      if (parsedInt != null) return parsedInt;
+      final parsedDate = DateTime.tryParse(val);
+      if (parsedDate != null) return parsedDate.millisecondsSinceEpoch;
+    }
+    return null;
+  }
+
   factory Template.fromMap(Map<String, dynamic> originalMap) {
     // Create a mutable copy
     final map = Map<String, dynamic>.from(originalMap);
@@ -86,9 +101,7 @@ class Template {
           map.addAll(decryptedMap);
         }
       } catch (e) {
-        // Handle decryption failure (e.g. wrong key, corrupted data)
-        // print('Error decrypting template data: \$e');
-        // print('Error decrypting template data: $e');
+        // Handle decryption failure
       }
     }
 
@@ -110,7 +123,7 @@ class Template {
         layout: (map['layout'] as List? ?? [])
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
-        createdAt: map['createdAt'] as int?,
+        createdAt: _parseCreatedAt(map['createdAt']),
       );
   }
 }
