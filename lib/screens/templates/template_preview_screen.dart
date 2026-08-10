@@ -17,6 +17,15 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
 
+extension _IterableExt<T> on Iterable<T> {
+  T? firstWhereOrNull(bool Function(T element) test) {
+    for (var element in this) {
+      if (test(element)) return element;
+    }
+    return null;
+  }
+}
+
 class TemplatePreviewScreen extends ConsumerStatefulWidget {
   const TemplatePreviewScreen({super.key, required this.templateId, this.preselectedCollectionId});
   final String templateId;
@@ -161,13 +170,14 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
   Future<void> _useTemplate() async {
     final collections = ref.read(collectionsProvider).valueOrNull ?? [];
 
-    if (widget.preselectedCollectionId != null) {
-      final col = collections.firstWhere(
+    if (widget.preselectedCollectionId != null && collections.isNotEmpty) {
+      final col = collections.firstWhereOrNull(
         (c) => c.id == widget.preselectedCollectionId,
-        orElse: () => collections.first,
-      );
-      await _createScreenshotInCollection(col.id, col.screenshotCount);
-      return;
+      ) ?? collections.firstOrNull;
+      if (col != null) {
+        await _createScreenshotInCollection(col.id, col);
+        return;
+      }
     }
 
     if (collections.isEmpty) {
@@ -177,38 +187,65 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
       try {
         final colorIdx = math.Random().nextInt(collectionColors.length);
         final newCol = await ref.read(collectionsNotifierProvider.notifier).create(newName, colorIdx);
-        await _createScreenshotInCollection(newCol.id, 0);
+        await _createScreenshotInCollection(newCol.id, newCol);
+      } catch (e) {
+        if (mounted) AppToast.show(context, message: 'Failed to create collection', type: AppToastType.error);
       } finally {
         if (mounted) setState(() => _loading = false);
       }
       return;
     }
 
-    final selected = await showModalBottomSheet<String>(
+    final selectedId = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _CollectionPickerSheet(collections: collections),
+      builder: (_) => _CollectionPickerSheet(
+        collections: collections,
+        onCreateNew: () async {
+          final newName = await _showCreateCollectionDialog();
+          if (newName != null && mounted) {
+            final colorIdx = math.Random().nextInt(collectionColors.length);
+            final newCol = await ref.read(collectionsNotifierProvider.notifier).create(newName, colorIdx);
+            if (mounted) Navigator.pop(context, newCol.id);
+          }
+        },
+      ),
     );
-    if (selected == null || !mounted) return;
+    if (selectedId == null || !mounted) return;
 
-    final col = collections.firstWhere((c) => c.id == selected);
-    await _createScreenshotInCollection(selected, col.screenshotCount);
+    final col = collections.firstWhereOrNull((c) => c.id == selectedId) ?? 
+                ref.read(localDataServiceProvider).getCollection(selectedId);
+    await _createScreenshotInCollection(selectedId, col);
   }
 
-  Future<void> _createScreenshotInCollection(String collectionId, int count) async {
+  Future<void> _createScreenshotInCollection(String collectionId, [Collection? collectionData]) async {
     setState(() => _loading = true);
     try {
-      final collections = ref.read(collectionsProvider).valueOrNull ?? [];
-      final col = collections.firstWhere((c) => c.id == collectionId);
+      Collection? col = collectionData;
+      if (col == null) {
+        final collections = ref.read(collectionsProvider).valueOrNull ?? [];
+        col = collections.firstWhereOrNull((c) => c.id == collectionId) ??
+              ref.read(localDataServiceProvider).getCollection(collectionId);
+      }
+
+      final count = col?.screenshotCount ?? 0;
       final screenshot = await ref.read(screenshotsNotifierProvider.notifier).create(
         collectionId: collectionId,
         templateId: widget.template.id,
         name: 'Screenshot ${count + 1}',
         order: count,
       );
-      await ref.read(collectionsNotifierProvider.notifier).addScreenshot(col, screenshot.id);
+
+      if (col != null) {
+        await ref.read(collectionsNotifierProvider.notifier).addScreenshot(col, screenshot.id);
+      }
       if (mounted) context.push('/editor/${screenshot.id}');
+    } catch (e, stack) {
+      debugPrint('Error creating screenshot: $e\n$stack');
+      if (mounted) {
+        AppToast.show(context, message: 'Failed to create screenshot', type: AppToastType.error);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -483,8 +520,9 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
 // ── Collection Picker Sheet ──────────────────────────────────────────────────
 
 class _CollectionPickerSheet extends StatelessWidget {
-  const _CollectionPickerSheet({required this.collections});
+  const _CollectionPickerSheet({required this.collections, this.onCreateNew});
   final List collections;
+  final VoidCallback? onCreateNew;
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +547,23 @@ class _CollectionPickerSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.s24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-              child: Text('Add to collection', style: AppText.headline2()),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Add to collection', style: AppText.headline2()),
+                  if (onCreateNew != null)
+                    GestureDetector(
+                      onTap: onCreateNew,
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.plus, size: 16, color: AppColors.accent),
+                          const SizedBox(width: 4),
+                          Text('New', style: AppText.labelLarge(color: AppColors.accent)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.s12),
             Flexible(
