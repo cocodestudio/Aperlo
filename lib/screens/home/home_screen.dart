@@ -32,11 +32,8 @@ class HomeScreen extends ConsumerWidget {
         color: AppColors.accent,
         displacement: 80,
         onRefresh: () async {
-          final category = ref.read(selectedCategoryProvider) == 'All'
-              ? null
-              : ref.read(selectedCategoryProvider);
           ref.invalidate(collectionsProvider);
-          ref.invalidate(templatesProvider(category));
+          ref.invalidate(templatesProvider(null));
         },
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(
@@ -315,56 +312,36 @@ class _ContinueWorkingSection extends ConsumerWidget {
 class _FeaturedTemplatesSection extends ConsumerWidget {
   const _FeaturedTemplatesSection();
 
-  static const _categories = [
-    'All', 'Minimal', 'Bold', 'Dark', 'Gradient', '3D Mockup',
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedCategory = ref.watch(selectedCategoryProvider);
-    final category = selectedCategory == 'All' ? null : selectedCategory;
-    final templatesAsync = ref.watch(templatesProvider(category));
+    final templatesAsync = ref.watch(templatesProvider(null));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Category chips
-        SizedBox(
-          height: 34,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-            itemCount: _categories.length,
-            separatorBuilder: (_, index) => const SizedBox(width: 6),
-            itemBuilder: (_, i) => CategoryChip(
-              label: _categories[i],
-              isSelected: selectedCategory == _categories[i],
-              onTap: () => ref
-                  .read(selectedCategoryProvider.notifier)
-                  .state = _categories[i],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s12),
-        // Templates horizontal list
+        // Templates horizontal list (latest 5)
         SizedBox(
           height: 160 * 16 / 9,
           child: templatesAsync.when(
-            data: (templates) => templates.isEmpty
-                ? const Center(
-                    child: Text('No templates'),
-                  )
-                : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s16,
-                    ),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: templates.take(8).length,
-                    separatorBuilder: (context, index) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) =>
-                        _FeaturedTemplateCard(template: templates[i]),
-                  ),
+            data: (templates) {
+              final featured = templates.take(5).toList();
+              if (featured.isEmpty) {
+                return const Center(
+                  child: Text('No templates'),
+                );
+              }
+              return ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s16,
+                ),
+                physics: const BouncingScrollPhysics(),
+                itemCount: featured.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                itemBuilder: (context, i) =>
+                    _FeaturedTemplateCard(template: featured[i]),
+              );
+            },
             loading: () => ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
