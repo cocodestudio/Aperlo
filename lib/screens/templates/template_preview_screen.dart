@@ -16,6 +16,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/app_text_field.dart';
 
 extension _IterableExt<T> on Iterable<T> {
   T? firstWhereOrNull(bool Function(T element) test) {
@@ -259,19 +260,18 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
-        title: Text('Create a collection', style: AppText.headline2()),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Collection name',
-            border: UnderlineInputBorder(),
-            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.accent, width: 2)),
-          ),
-          style: AppText.bodyDefault(),
+        title: Text('New collection', style: AppText.headline2()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppTextField(controller: ctrl, hint: 'Collection name', autofocus: true),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: Text('Cancel', style: AppText.labelLarge(color: AppColors.inkMuted))),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: AppText.labelLarge(color: AppColors.inkMuted)),
+          ),
           TextButton(
             onPressed: () {
               final name = ctrl.text.trim();
