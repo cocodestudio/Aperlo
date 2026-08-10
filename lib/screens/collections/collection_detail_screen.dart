@@ -60,6 +60,7 @@ class CollectionDetailScreen extends ConsumerWidget {
         backgroundColor: AppColors.accent,
         elevation: 4,
         highlightElevation: 8,
+        shape: const CircleBorder(),
         child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
       ),
       body: screenshotsAsync.when(

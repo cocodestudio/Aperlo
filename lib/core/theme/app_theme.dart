@@ -132,5 +132,12 @@ ThemeData buildAppTheme() {
       shape: const StadiumBorder(),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      shape: CircleBorder(),
+      backgroundColor: AppColors.accent,
+      foregroundColor: AppColors.accentOn,
+      elevation: 4,
+      highlightElevation: 8,
+    ),
   );
 }
