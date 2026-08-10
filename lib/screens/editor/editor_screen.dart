@@ -603,6 +603,26 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   PropertySlider(label: 'Letter Spacing', value: (layer['letter_spacing'] ?? 0.0).toDouble(), min: -5.0, max: 20.0, onChanged: (v) { layer['letter_spacing'] = v; sheetUpdateLayer(layer); }),
                   PropertySlider(label: 'Line Height', value: (layer['line_height'] ?? 1.2).toDouble(), min: 0.5, max: 3.0, onChanged: (v) { layer['line_height'] = v; sheetUpdateLayer(layer); }),
                 ]),
+                buildSection('Position', [
+                  PositionPresets(
+                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
+                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
+                    onChanged: (nx, ny) {
+                      if (layer.containsKey('x')) layer['x'] = nx;
+                      if (layer.containsKey('cx')) layer['cx'] = nx;
+                      if (layer.containsKey('y')) layer['y'] = ny;
+                      if (layer.containsKey('cy')) layer['cy'] = ny;
+                      sheetUpdateLayer(layer);
+                    },
+                  ),
+                  StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
+                    if (layer.containsKey('x')) layer['x'] = x;
+                    if (layer.containsKey('cx')) layer['cx'] = x;
+                    if (layer.containsKey('y')) layer['y'] = y;
+                    if (layer.containsKey('cy')) layer['cy'] = y;
+                    sheetUpdateLayer(layer);
+                  }),
+                ]),
               ];
             } else if (type == 'image' || type == 'phone') {
               sections = [
@@ -624,6 +644,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
                 ]),
                 buildSection('Position', [
+                  PositionPresets(
+                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
+                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
+                    onChanged: (nx, ny) {
+                      if (layer.containsKey('x')) layer['x'] = nx;
+                      if (layer.containsKey('cx')) layer['cx'] = nx;
+                      if (layer.containsKey('y')) layer['y'] = ny;
+                      if (layer.containsKey('cy')) layer['cy'] = ny;
+                      sheetUpdateLayer(layer);
+                    },
+                  ),
                   StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
                     if (layer.containsKey('x')) layer['x'] = x;
                     if (layer.containsKey('cx')) layer['cx'] = x;
@@ -648,6 +679,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
                 ]),
                 buildSection('Position', [
+                  PositionPresets(
+                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
+                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
+                    onChanged: (nx, ny) {
+                      if (layer.containsKey('x')) layer['x'] = nx;
+                      if (layer.containsKey('cx')) layer['cx'] = nx;
+                      if (layer.containsKey('y')) layer['y'] = ny;
+                      if (layer.containsKey('cy')) layer['cy'] = ny;
+                      sheetUpdateLayer(layer);
+                    },
+                  ),
                   StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
                     if (layer.containsKey('x')) layer['x'] = x;
                     if (layer.containsKey('cx')) layer['cx'] = x;

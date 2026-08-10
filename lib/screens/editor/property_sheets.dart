@@ -668,6 +668,85 @@ class StyledPositionNudge extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Position Presets — snap element to preset positions
+// ─────────────────────────────────────────────────────────────────────────────
+
+class PositionPresets extends StatelessWidget {
+  final double x, y;
+  final void Function(double newX, double newY) onChanged;
+
+  const PositionPresets({
+    super.key,
+    required this.x,
+    required this.y,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('Snap Position', style: AppText.labelLarge()),
+        ),
+        // Row 1 — horizontal axis
+        Row(
+          children: [
+            _preset('Left',     LucideIcons.alignLeft,           () => onChanged(0.1, y)),
+            const SizedBox(width: 8),
+            _preset('Center H', LucideIcons.alignCenter,         () => onChanged(0.5, y)),
+            const SizedBox(width: 8),
+            _preset('Right',    LucideIcons.alignRight,          () => onChanged(0.9, y)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Row 2 — vertical axis
+        Row(
+          children: [
+            _preset('Top',      LucideIcons.alignStartVertical,  () => onChanged(x, 0.1)),
+            const SizedBox(width: 8),
+            _preset('Center V', LucideIcons.alignCenterVertical, () => onChanged(x, 0.5)),
+            const SizedBox(width: 8),
+            _preset('Bottom',   LucideIcons.alignEndVertical,    () => onChanged(x, 0.9)),
+          ],
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _preset(String label, IconData icon, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
+            borderRadius: AppRadius.br10,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: AppColors.inkSecondary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: AppText.labelSmall(color: AppColors.inkSecondary)
+                    .copyWith(fontSize: 9, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class LayerBackgroundEditSheet extends StatefulWidget {
   final Map<String, dynamic> layer;
   final void Function(Map<String, dynamic>) onSave;
