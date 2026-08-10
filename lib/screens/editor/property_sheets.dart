@@ -611,15 +611,20 @@ class StyledInputNumeric extends StatelessWidget {
         ),
         Row(
           children: [
-            GestureDetector(
-              onTap: () => onChanged(value - 1),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
-                  borderRadius: AppRadius.br10,
+            Material(
+              color: AppColors.surfaceMuted,
+              borderRadius: AppRadius.br10,
+              child: InkWell(
+                borderRadius: AppRadius.br10,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onChanged(value - 1);
+                },
+                child: const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(child: Icon(LucideIcons.minus, size: 16)),
                 ),
-                child: const Icon(LucideIcons.minus, size: 16),
               ),
             ),
             Expanded(
@@ -634,15 +639,20 @@ class StyledInputNumeric extends StatelessWidget {
                 child: Text(value.toStringAsFixed(1), style: AppText.bodyLarge()),
               ),
             ),
-            GestureDetector(
-              onTap: () => onChanged(value + 1),
-              child: Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
-                  borderRadius: AppRadius.br10,
+            Material(
+              color: AppColors.surfaceMuted,
+              borderRadius: AppRadius.br10,
+              child: InkWell(
+                borderRadius: AppRadius.br10,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onChanged(value + 1);
+                },
+                child: const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Center(child: Icon(LucideIcons.plus, size: 16)),
                 ),
-                child: const Icon(LucideIcons.plus, size: 16),
               ),
             ),
           ],
@@ -662,24 +672,33 @@ class StyledActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMuted.withValues(alpha: 0.3),
-          border: Border.all(color: AppColors.borderDefault),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Material(
+        color: AppColors.surfaceMuted.withValues(alpha: 0.3),
+        borderRadius: AppRadius.br10,
+        child: InkWell(
           borderRadius: AppRadius.br10,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: AppColors.accent),
-            const SizedBox(width: 12),
-            Text(label, style: AppText.labelLarge()),
-            const Spacer(),
-            const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.inkMuted),
-          ],
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.borderDefault),
+              borderRadius: AppRadius.br10,
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: AppColors.accent),
+                const SizedBox(width: 12),
+                Text(label, style: AppText.labelLarge()),
+                const Spacer(),
+                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.inkMuted),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -735,20 +754,23 @@ class StyledPositionNudge extends StatelessWidget {
   }
 
   Widget _buildNudgeButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
+    return Container(
+      margin: const EdgeInsets.all(4),
+      child: Material(
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(child: Icon(icon, size: 20)),
+          ),
         ),
-        child: Icon(icon, size: 20),
       ),
     );
   }
@@ -813,29 +835,29 @@ class PositionPresets extends StatelessWidget {
 
   Widget _preset(String label, IconData icon, VoidCallback onTap) {
     return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: AppRadius.br10,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: AppColors.inkSecondary),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: AppText.labelSmall(color: AppColors.inkSecondary)
-                    .copyWith(fontSize: 9, fontWeight: FontWeight.w600),
-              ),
-            ],
+      child: Material(
+        color: AppColors.surfaceMuted,
+        borderRadius: AppRadius.br10,
+        child: InkWell(
+          borderRadius: AppRadius.br10,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: AppColors.inkSecondary),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: AppText.labelSmall(color: AppColors.inkSecondary)
+                      .copyWith(fontSize: 9, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
         ),
       ),

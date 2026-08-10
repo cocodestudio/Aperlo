@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -666,7 +667,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 PropertySheetSection(
                   title: 'Style',
                   content: buildSection('Appearance', [
-                    PropertyDropdown(label: 'Font Family', value: layer['font_family'] ?? 'DM Sans', items: const ['Syne', 'DM Sans', 'Syne Mono'], onChanged: (v) { layer['font_family'] = v; sheetUpdateLayer(layer); }),
                     StyledInputNumeric(label: 'Font Size', value: ((layer['font_size'] ?? 0.08) as num).toDouble() * 390.0, onChanged: (v) { layer['font_size'] = v / 390.0; sheetUpdateLayer(layer); }),
                     PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
                   ]),
@@ -682,8 +682,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                         sheetUpdateLayer(layer);
                       },
                     ),
-                    PropertySlider(label: 'Letter Spacing', value: (layer['letter_spacing'] ?? 0.0).toDouble(), min: -5.0, max: 20.0, onChanged: (v) { layer['letter_spacing'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Line Height', value: (layer['line_height'] ?? 1.2).toDouble(), min: 0.5, max: 3.0, onChanged: (v) { layer['line_height'] = v; sheetUpdateLayer(layer); }),
                   ]),
                 ),
                 PropertySheetSection(
@@ -1007,71 +1005,98 @@ class _EditorAppBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/home');
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
-                shape: BoxShape.circle,
+          Material(
+            color: AppColors.surfaceMuted,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/home');
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(LucideIcons.arrowLeft, size: 20),
               ),
-              child: const Icon(LucideIcons.arrowLeft, size: 20),
             ),
           ),
           Expanded(
-            child: GestureDetector(
-              onTap: () => _showRenameDialog(context),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      screenshotName,
-                      style: AppText.labelLarge(color: AppColors.inkSecondary),
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: AppRadius.br10,
+              child: InkWell(
+                borderRadius: AppRadius.br10,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showRenameDialog(context);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          screenshotName,
+                          style: AppText.labelLarge(color: AppColors.inkSecondary),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(LucideIcons.pencil, size: 12, color: AppColors.inkMuted),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(LucideIcons.pencil, size: 12, color: AppColors.inkMuted),
-                ],
+                ),
               ),
             ),
           ),
-          GestureDetector(
-            onTap: canUndo ? onUndo : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(LucideIcons.rotateCcw, size: 20, color: canUndo ? AppColors.inkPrimary : AppColors.inkDisabled),
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: canUndo ? () { HapticFeedback.lightImpact(); onUndo(); } : null,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(LucideIcons.rotateCcw, size: 20, color: canUndo ? AppColors.inkPrimary : AppColors.inkDisabled),
+              ),
             ),
           ),
-          GestureDetector(
-            onTap: canRedo ? onRedo : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Icon(LucideIcons.rotateCw, size: 20, color: canRedo ? AppColors.inkPrimary : AppColors.inkDisabled),
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: canRedo ? () { HapticFeedback.lightImpact(); onRedo(); } : null,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(LucideIcons.rotateCw, size: 20, color: canRedo ? AppColors.inkPrimary : AppColors.inkDisabled),
+              ),
             ),
           ),
           Container(
               width: 1,
               height: 18,
               color: AppColors.borderDefault,
-              margin: const EdgeInsets.symmetric(horizontal: 8)),
-          GestureDetector(
-            onTap: onExport,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: AppRadius.brFull,
+              margin: const EdgeInsets.symmetric(horizontal: 4)),
+          Material(
+            color: AppColors.accent,
+            borderRadius: AppRadius.brFull,
+            child: InkWell(
+              borderRadius: AppRadius.brFull,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onExport();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('Export', style: AppText.labelLarge(color: AppColors.accentOn)),
               ),
-              child: Text('Export', style: AppText.labelLarge(color: AppColors.accentOn)),
             ),
           ),
         ],
@@ -1134,22 +1159,25 @@ class _ToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isActive ? AppColors.accent : AppColors.inkMuted;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.accentTint : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 3),
-            Text(label, style: AppText.labelSmall(color: color).copyWith(fontSize: 10)),
-          ],
+    return Material(
+      color: isActive ? AppColors.accentTint : Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: color),
+              const SizedBox(height: 3),
+              Text(label, style: AppText.labelSmall(color: color).copyWith(fontSize: 10)),
+            ],
+          ),
         ),
       ),
     );
