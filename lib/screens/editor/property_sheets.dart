@@ -33,22 +33,64 @@ Widget buildSection(String title, List<Widget> children) {
   ]);
 }
 
-class PropertySheetLayout extends StatelessWidget {
-  final List<Widget> children;
+class PropertySheetSection {
+  final String title;
+  final Widget content;
 
-  const PropertySheetLayout({super.key, required this.children});
+  const PropertySheetSection({
+    required this.title,
+    required this.content,
+  });
+}
+
+class PropertySheetLayout extends StatefulWidget {
+  final List<Widget>? children;
+  final List<PropertySheetSection>? sections;
+
+  const PropertySheetLayout({
+    super.key,
+    this.children,
+    this.sections,
+  });
+
+  @override
+  State<PropertySheetLayout> createState() => _PropertySheetLayoutState();
+}
+
+class _PropertySheetLayoutState extends State<PropertySheetLayout> {
+  int _activeTabIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final sections = widget.sections;
+    final hasTabs = sections != null && sections.length > 1;
+
+    Widget activeContent;
+    if (sections != null && sections.isNotEmpty) {
+      final safeIdx = _activeTabIndex.clamp(0, sections.length - 1);
+      final activeSection = sections[safeIdx];
+      activeContent = KeyedSubtree(
+        key: ValueKey(activeSection.title),
+        child: activeSection.content,
+      );
+    } else {
+      activeContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: widget.children ?? const [],
+      );
+    }
+
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Drag handle pill
           Center(
             child: Container(
               width: 40,
@@ -60,13 +102,41 @@ class PropertySheetLayout extends StatelessWidget {
               ),
             ),
           ),
+
+          // Section Tab Switcher
+          if (hasTabs)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s20, 0, AppSpacing.s20, AppSpacing.s4),
+              child: TogglePillGroup(
+                options: sections.map((s) => s.title).toList(),
+                selectedValue: sections[_activeTabIndex.clamp(0, sections.length - 1)].title,
+                onChanged: (title) {
+                  final idx = sections.indexWhere((s) => s.title == title);
+                  if (idx != -1) {
+                    setState(() => _activeTabIndex = idx);
+                  }
+                },
+              ),
+            ),
+
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.s24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: children,
+              padding: const EdgeInsets.all(AppSpacing.s20),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.04, 0),
+                      end: Offset.zero,
+                    ).animate(anim),
+                    child: child,
+                  ),
+                ),
+                child: activeContent,
               ),
             ),
           ),
@@ -785,20 +855,11 @@ class LayerBackgroundEditSheet extends StatefulWidget {
 
 class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
   late Map<String, dynamic> _data;
-  late String _bgType;
 
   @override
   void initState() {
     super.initState();
     _data = Map<String, dynamic>.from(widget.layer);
-    
-    if (_data['gradient'] != null && (_data['gradient'] as List).length >= 2) {
-      _bgType = 'Linear Gradient';
-    } else if (_data['split_at'] != null) {
-      _bgType = 'Split Colors';
-    } else {
-      _bgType = 'Solid Color';
-    }
   }
 
   void _updateData() {
@@ -809,53 +870,27 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
   @override
   Widget build(BuildContext context) {
     return PropertySheetLayout(
-      children: [
-        buildSection('Type', [
-          TogglePillGroup(
-            options: const ['Solid Color', 'Linear Gradient', 'Split Colors'],
-            selectedValue: _bgType,
-            onChanged: (v) {
-              setState(() {
-                _bgType = v;
-                _data.remove('color');
-                _data.remove('gradient');
-                _data.remove('begin');
-                _data.remove('end');
-                _data.remove('split_at');
-                _data.remove('top_color');
-                _data.remove('bottom_color');
-                
-                if (_bgType == 'Solid Color') {
-                  _data['color'] = '#FAF9F6';
-                } else if (_bgType == 'Linear Gradient') {
-                  _data['gradient'] = ['#0082FF', '#0040A3'];
-                  _data['begin'] = 'topCenter';
-                  _data['end'] = 'bottomCenter';
-                } else if (_bgType == 'Split Colors') {
-                  _data['split_at'] = 0.5;
-                  _data['top_color'] = '#FAF9F6';
-                  _data['bottom_color'] = '#F5F7F5';
-                }
-                _updateData();
-              });
-            },
-          ),
-        ]),
-        
-        if (_bgType == 'Solid Color')
-          buildSection('Solid Color', [
+      sections: [
+        PropertySheetSection(
+          title: 'Solid Color',
+          content: buildSection('Solid Color', [
             PropertyColorPicker(
               label: 'Color',
               hexColor: _data['color'] as String? ?? '#FAF9F6',
               onChanged: (c) {
-                setState(() => _data['color'] = c);
+                setState(() {
+                  _data['color'] = c;
+                  _data.remove('gradient');
+                  _data.remove('split_at');
+                });
                 _updateData();
               },
             ),
           ]),
-          
-        if (_bgType == 'Linear Gradient')
-          buildSection('Linear Gradient', [
+        ),
+        PropertySheetSection(
+          title: 'Linear Gradient',
+          content: buildSection('Linear Gradient', [
             PropertyColorPicker(
               label: 'Start Color',
               hexColor: (_data['gradient'] as List?)?[0] as String? ?? '#0082FF',
@@ -863,6 +898,8 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
                 setState(() {
                   if (_data['gradient'] == null) _data['gradient'] = ['#0082FF', '#0040A3'];
                   _data['gradient'][0] = c;
+                  _data.remove('color');
+                  _data.remove('split_at');
                 });
                 _updateData();
               },
@@ -874,6 +911,8 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
                 setState(() {
                   if (_data['gradient'] == null) _data['gradient'] = ['#0082FF', '#0040A3'];
                   _data['gradient'][1] = c;
+                  _data.remove('color');
+                  _data.remove('split_at');
                 });
                 _updateData();
               },
@@ -897,14 +936,20 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               },
             ),
           ]),
-        
-        if (_bgType == 'Split Colors')
-          buildSection('Split Colors', [
+        ),
+        PropertySheetSection(
+          title: 'Split Colors',
+          content: buildSection('Split Colors', [
             PropertyColorPicker(
               label: 'Top Color',
               hexColor: _data['top_color'] as String? ?? '#FAF9F6',
               onChanged: (c) {
-                setState(() => _data['top_color'] = c);
+                setState(() {
+                  _data['top_color'] = c;
+                  if (_data['split_at'] == null) _data['split_at'] = 0.5;
+                  _data.remove('color');
+                  _data.remove('gradient');
+                });
                 _updateData();
               },
             ),
@@ -912,7 +957,12 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               label: 'Bottom Color',
               hexColor: _data['bottom_color'] as String? ?? '#F5F7F5',
               onChanged: (c) {
-                setState(() => _data['bottom_color'] = c);
+                setState(() {
+                  _data['bottom_color'] = c;
+                  if (_data['split_at'] == null) _data['split_at'] = 0.5;
+                  _data.remove('color');
+                  _data.remove('gradient');
+                });
                 _updateData();
               },
             ),
@@ -927,6 +977,7 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               },
             ),
           ]),
+        ),
       ],
     );
   }

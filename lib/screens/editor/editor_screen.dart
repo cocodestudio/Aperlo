@@ -632,7 +632,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             }
 
             final String type = layer['type'] as String? ?? '';
-            List<Widget> sections = [];
+            List<PropertySheetSection> sections = [];
 
             if (type == 'text' || type == 'badge' || type == 'feature_row') {
               final rawContent = layer['content'] as String? ?? '';
@@ -642,128 +642,156 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
               final initialText = isHeadline ? _templateData.headline : isSubheadline ? _templateData.subheadline : rawContent;
                       
               sections = [
-                buildSection('Content', [
-                  _LayerTextField(
-                    key: ValueKey('text_$_selectedLayerIndex'),
-                    label: 'Text',
-                    initialText: initialText,
-                    onChanged: (val) {
-                      if (isHeadline) {
-                        setState(() { _templateData = TemplateData(headline: val, subheadline: _templateData.subheadline, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
-                        _debouncedSave();
-                      } else if (isSubheadline) {
-                        setState(() { _templateData = TemplateData(headline: _templateData.headline, subheadline: val, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
-                        _debouncedSave();
-                      } else {
-                        layer['content'] = val; sheetUpdateLayer(layer);
-                      }
-                    },
-                  )
-                ]),
-                buildSection('Appearance', [
-                  PropertyDropdown(label: 'Font Family', value: layer['font_family'] ?? 'DM Sans', items: const ['Syne', 'DM Sans', 'Syne Mono'], onChanged: (v) { layer['font_family'] = v; sheetUpdateLayer(layer); }),
-                  StyledInputNumeric(label: 'Font Size', value: ((layer['font_size'] ?? 0.08) as num).toDouble() * 390.0, onChanged: (v) { layer['font_size'] = v / 390.0; sheetUpdateLayer(layer); }),
-                  PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
-                ]),
-                buildSection('Layout', [
-                  TextAlignmentControl(
-                    value: layer['text_align'] as String? ?? layer['align'] as String? ?? 'left',
-                    onChanged: (v) {
-                      layer['text_align'] = v;
-                      layer['align'] = v;
-                      sheetUpdateLayer(layer);
-                    },
-                  ),
-                  PropertySlider(label: 'Letter Spacing', value: (layer['letter_spacing'] ?? 0.0).toDouble(), min: -5.0, max: 20.0, onChanged: (v) { layer['letter_spacing'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Line Height', value: (layer['line_height'] ?? 1.2).toDouble(), min: 0.5, max: 3.0, onChanged: (v) { layer['line_height'] = v; sheetUpdateLayer(layer); }),
-                ]),
-                buildSection('Position', [
-                  PositionPresets(
-                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                  ),
-                  StyledPositionNudge(
-                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                  ),
-                ]),
+                PropertySheetSection(
+                  title: 'Content',
+                  content: buildSection('Content', [
+                    _LayerTextField(
+                      key: ValueKey('text_$_selectedLayerIndex'),
+                      label: 'Text',
+                      initialText: initialText,
+                      onChanged: (val) {
+                        if (isHeadline) {
+                          setState(() { _templateData = TemplateData(headline: val, subheadline: _templateData.subheadline, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
+                          _debouncedSave();
+                        } else if (isSubheadline) {
+                          setState(() { _templateData = TemplateData(headline: _templateData.headline, subheadline: val, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
+                          _debouncedSave();
+                        } else {
+                          layer['content'] = val; sheetUpdateLayer(layer);
+                        }
+                      },
+                    ),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Style',
+                  content: buildSection('Appearance', [
+                    PropertyDropdown(label: 'Font Family', value: layer['font_family'] ?? 'DM Sans', items: const ['Syne', 'DM Sans', 'Syne Mono'], onChanged: (v) { layer['font_family'] = v; sheetUpdateLayer(layer); }),
+                    StyledInputNumeric(label: 'Font Size', value: ((layer['font_size'] ?? 0.08) as num).toDouble() * 390.0, onChanged: (v) { layer['font_size'] = v / 390.0; sheetUpdateLayer(layer); }),
+                    PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Layout',
+                  content: buildSection('Layout', [
+                    TextAlignmentControl(
+                      value: layer['text_align'] as String? ?? layer['align'] as String? ?? 'left',
+                      onChanged: (v) {
+                        layer['text_align'] = v;
+                        layer['align'] = v;
+                        sheetUpdateLayer(layer);
+                      },
+                    ),
+                    PropertySlider(label: 'Letter Spacing', value: (layer['letter_spacing'] ?? 0.0).toDouble(), min: -5.0, max: 20.0, onChanged: (v) { layer['letter_spacing'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Line Height', value: (layer['line_height'] ?? 1.2).toDouble(), min: 0.5, max: 3.0, onChanged: (v) { layer['line_height'] = v; sheetUpdateLayer(layer); }),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Position',
+                  content: buildSection('Position', [
+                    PositionPresets(
+                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
+                    ),
+                    StyledPositionNudge(
+                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                    ),
+                  ]),
+                ),
               ];
             } else if (type == 'image' || type == 'phone') {
               sections = [
-                if (type == 'phone') buildSection('Source', [
-                  StyledActionTile(label: 'Pick Image', icon: LucideIcons.image, onTap: () {
-                    Navigator.pop(ctx);
-                    if (_selectedLayerIndex != null) _pickScreenshotImage(_selectedLayerIndex!);
-                  }),
-                ]),
-                if (type == 'phone') buildSection('Mockup Style', [
-                  MockupStyleSelector(
-                    value: layer['style'] as String? ?? 'dynamic_island',
-                    onChanged: (v) { layer['style'] = v; sheetUpdateLayer(layer); },
+                if (type == 'phone')
+                  PropertySheetSection(
+                    title: 'Style',
+                    content: buildSection('Mockup & Source', [
+                      StyledActionTile(label: 'Pick Image', icon: LucideIcons.image, onTap: () {
+                        Navigator.pop(ctx);
+                        if (_selectedLayerIndex != null) _pickScreenshotImage(_selectedLayerIndex!);
+                      }),
+                      MockupStyleSelector(
+                        value: layer['style'] as String? ?? 'dynamic_island',
+                        onChanged: (v) { layer['style'] = v; sheetUpdateLayer(layer); },
+                      ),
+                    ]),
                   ),
-                ]),
-                buildSection('Transform', [
-                  PropertySlider(label: 'Scale', value: (layer['scale'] ?? 1.0).toDouble(), min: 0.1, max: 3.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['scale'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
-                ]),
-                buildSection('Position', [
-                  PositionPresets(
-                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                  ),
-                  StyledPositionNudge(
-                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                  ),
-                ]),
+                PropertySheetSection(
+                  title: 'Transform',
+                  content: buildSection('Transform', [
+                    PropertySlider(label: 'Scale', value: (layer['scale'] ?? 1.0).toDouble(), min: 0.1, max: 3.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['scale'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Position',
+                  content: buildSection('Position', [
+                    PositionPresets(
+                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
+                    ),
+                    StyledPositionNudge(
+                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                    ),
+                  ]),
+                ),
               ];
-
             } else if (type == 'shape' || type == 'accent_bar' || type == 'divider' || type == 'frosted_panel') {
               sections = [
-                buildSection('Appearance', [
-                  PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
-                  if (type == 'shape' || type == 'frosted_panel') PropertySlider(label: 'Border Radius', value: (layer['border_radius'] ?? 12.0).toDouble(), min: 0.0, max: 100.0, onChanged: (v) { layer['border_radius'] = v; sheetUpdateLayer(layer); }),
-                  if (type == 'frosted_panel') PropertySlider(label: 'Blur Amount', value: (layer['blur'] ?? 10.0).toDouble(), min: 0.0, max: 40.0, valueFormatter: (v) => '${v.toInt()} px', onChanged: (v) { layer['blur'] = v; sheetUpdateLayer(layer); }),
-                ]),
-                buildSection('Transform', [
-                  PropertySlider(label: 'Width', value: (layer['width'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['width'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Height', value: (layer['height'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['height'] = v; sheetUpdateLayer(layer); }),
-                  PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
-                ]),
-                buildSection('Position', [
-                  PositionPresets(
-                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                  ),
-                  StyledPositionNudge(
-                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                  ),
-                ]),
+                PropertySheetSection(
+                  title: 'Style',
+                  content: buildSection('Appearance', [
+                    PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
+                    if (type == 'shape' || type == 'frosted_panel') PropertySlider(label: 'Border Radius', value: (layer['border_radius'] ?? 12.0).toDouble(), min: 0.0, max: 100.0, onChanged: (v) { layer['border_radius'] = v; sheetUpdateLayer(layer); }),
+                    if (type == 'frosted_panel') PropertySlider(label: 'Blur Amount', value: (layer['blur'] ?? 10.0).toDouble(), min: 0.0, max: 40.0, valueFormatter: (v) => '${v.toInt()} px', onChanged: (v) { layer['blur'] = v; sheetUpdateLayer(layer); }),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Transform',
+                  content: buildSection('Transform', [
+                    PropertySlider(label: 'Width', value: (layer['width'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['width'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Height', value: (layer['height'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['height'] = v; sheetUpdateLayer(layer); }),
+                    PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
+                  ]),
+                ),
+                PropertySheetSection(
+                  title: 'Position',
+                  content: buildSection('Position', [
+                    PositionPresets(
+                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
+                    ),
+                    StyledPositionNudge(
+                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                    ),
+                  ]),
+                ),
               ];
             }
 
-            return PropertySheetLayout(children: sections);
+            return PropertySheetLayout(sections: sections);
           }
         )
       )
