@@ -173,7 +173,6 @@ class _TemplateCenteredPhone extends StatelessWidget {
             child: Text(
               data.headline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.082, fontWeight: FontWeight.w800, color: data.headlineColor, height: 1.15, letterSpacing: -0.5),
             ),
           ),
@@ -184,7 +183,6 @@ class _TemplateCenteredPhone extends StatelessWidget {
             child: Text(
               data.subheadline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.042, color: data.subheadlineColor, height: 1.55),
             ),
           ),
@@ -232,7 +230,6 @@ class _TemplateSageStudio extends StatelessWidget {
                     child: Text(
                       data.headline,
                       textAlign: TextAlign.center,
-                      maxLines: 2,
                       style: TextStyle(fontSize: width * 0.076, fontWeight: FontWeight.w800, color: data.headlineColor, height: 1.2, letterSpacing: -0.4),
                     ),
                   ),
@@ -258,7 +255,6 @@ class _TemplateSageStudio extends StatelessWidget {
             child: Text(
               data.subheadline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.042, color: data.subheadlineColor, height: 1.5),
             ),
           ),
@@ -303,7 +299,6 @@ class _TemplateBoldSplit extends StatelessWidget {
                   SizedBox(height: height * 0.02),
                   Text(
                     data.headline,
-                    maxLines: 3,
                     style: TextStyle(fontSize: width * 0.085, fontWeight: FontWeight.w800, color: Colors.white, height: 1.1, letterSpacing: -0.5),
                   ),
                 ],
@@ -321,7 +316,6 @@ class _TemplateBoldSplit extends StatelessWidget {
               child: Text(
                 data.subheadline,
                 textAlign: TextAlign.center,
-                maxLines: 2,
                 style: TextStyle(fontSize: width * 0.04, color: data.subheadlineColor, height: 1.55),
               ),
             ),
@@ -380,13 +374,11 @@ class _TemplateForestDark extends StatelessWidget {
                 SizedBox(height: height * 0.02),
                 Text(
                   data.headline,
-                  maxLines: 4,
                   style: TextStyle(fontSize: width * 0.075, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.4),
                 ),
                 SizedBox(height: height * 0.025),
                 Text(
                   data.subheadline,
-                  maxLines: 3,
                   style: TextStyle(fontSize: width * 0.038, color: Colors.white.withValues(alpha: 0.6), height: 1.55),
                 ),
               ],
@@ -431,7 +423,6 @@ class _TemplateInkNight extends StatelessWidget {
             child: Text(
               data.headline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.09, fontWeight: FontWeight.w800, color: Colors.white, height: 1.1, letterSpacing: -0.6),
             ),
           ),
@@ -441,7 +432,6 @@ class _TemplateInkNight extends StatelessWidget {
             child: Text(
               data.subheadline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.04, color: Colors.white.withValues(alpha: 0.55), height: 1.55),
             ),
           ),
@@ -513,13 +503,11 @@ class _TemplateSlateOverlay extends StatelessWidget {
                 SizedBox(height: height * 0.02),
                 Text(
                   data.headline,
-                  maxLines: 4,
                   style: TextStyle(fontSize: width * 0.068, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2, letterSpacing: -0.3),
                 ),
                 SizedBox(height: height * 0.02),
                 Text(
                   data.subheadline,
-                  maxLines: 3,
                   style: TextStyle(fontSize: width * 0.035, color: Colors.white.withValues(alpha: 0.55), height: 1.55),
                 ),
               ],
@@ -560,7 +548,6 @@ class _TemplateGradientSide extends StatelessWidget {
             child: Text(
               data.headline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.082, fontWeight: FontWeight.w800, color: Colors.white, height: 1.15, letterSpacing: -0.5),
             ),
           ),
@@ -570,7 +557,6 @@ class _TemplateGradientSide extends StatelessWidget {
             child: Text(
               data.subheadline,
               textAlign: TextAlign.center,
-              maxLines: 2,
               style: TextStyle(fontSize: width * 0.04, color: Colors.white.withValues(alpha: 0.75), height: 1.55),
             ),
           ),
@@ -618,7 +604,6 @@ class _TemplateGeometric extends StatelessWidget {
                 child: Text(
                   data.headline,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
                   style: TextStyle(fontSize: width * 0.08, fontWeight: FontWeight.w800, color: data.headlineColor, height: 1.15, letterSpacing: -0.4),
                 ),
               ),
@@ -628,7 +613,6 @@ class _TemplateGeometric extends StatelessWidget {
                 child: Text(
                   data.subheadline,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
                   style: TextStyle(fontSize: width * 0.04, color: data.subheadlineColor, height: 1.55),
                 ),
               ),
@@ -690,13 +674,11 @@ class _TemplateTypeFirst extends StatelessWidget {
               children: [
                 Text(
                   data.headline,
-                  maxLines: 5,
                   style: TextStyle(fontSize: width * 0.09, fontWeight: FontWeight.w800, color: data.headlineColor, height: 1.1, letterSpacing: -0.5),
                 ),
                 SizedBox(height: height * 0.03),
                 Text(
                   data.subheadline,
-                  maxLines: 3,
                   style: TextStyle(fontSize: width * 0.038, color: data.subheadlineColor, height: 1.6),
                 ),
               ],

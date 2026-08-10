@@ -523,8 +523,8 @@ class _TextLayer extends StatelessWidget {
     final weight = _fontWeight(layer['weight'] as String? ??
         (layer['bold'] == true ? 'w800' : 'w400'));
     final align = _textAlign(layer['align'] as String? ?? 'left');
-    final maxLines = layer['max_lines'] as int?;
-    final overflow = maxLines != null ? TextOverflow.ellipsis : null;
+    final int? maxLines = null;
+    final TextOverflow? overflow = null;
     final lineHeight = _f(layer['line_height'], 1.2);
     final letterSpacing = _f(layer['letter_spacing']);
     final rotation = _f(layer['rotation']); // degrees
@@ -1632,8 +1632,6 @@ class _FeatureRow extends StatelessWidget {
                     decoration: TextDecoration.none,
                   ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
