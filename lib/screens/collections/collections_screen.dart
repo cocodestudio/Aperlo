@@ -51,15 +51,14 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
         title: Text('Collections', style: AppText.headline1()),
         elevation: 0,
         scrolledUnderElevation: 0,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.s16),
-            child: _HeaderAction(
-              icon: LucideIcons.plus,
-              onTap: () => _showNewCollectionDialog(context),
-            ),
-          ),
-        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showNewCollectionDialog(context),
+        shape: const CircleBorder(),
+        backgroundColor: AppColors.accent,
+        elevation: 4,
+        highlightElevation: 8,
+        child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
       ),
       body: Column(
         children: [
@@ -134,6 +133,7 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
 
                 if (cols.isEmpty) {
                   return EmptyState(
+                    icon: _search.isNotEmpty ? LucideIcons.searchX : LucideIcons.folderPlus,
                     headline: _search.isNotEmpty ? 'No matches found' : 'Your first collection',
                     description: _search.isNotEmpty 
                         ? 'We couldn\'t find any collections matching your search.' 

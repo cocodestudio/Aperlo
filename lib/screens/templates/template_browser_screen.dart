@@ -107,6 +107,7 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
               data: (templates) {
                 if (templates.isEmpty) {
                   return const EmptyState(
+                    icon: LucideIcons.layoutGrid,
                     headline: 'No templates found',
                     description: 'We couldn\'t find any templates matching your criteria.',
                   );

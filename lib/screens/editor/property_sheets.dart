@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -430,7 +431,10 @@ class TogglePillGroup extends StatelessWidget {
           final isSelected = opt == selectedValue;
           return Expanded(
             child: GestureDetector(
-              onTap: () => onChanged(opt),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onChanged(opt);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -662,7 +666,10 @@ class StyledPositionNudge extends StatelessWidget {
 
   Widget _buildNudgeButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       child: Container(
         margin: const EdgeInsets.all(4),
         width: 44,
@@ -737,7 +744,10 @@ class PositionPresets extends StatelessWidget {
   Widget _preset(String label, IconData icon, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           padding: const EdgeInsets.symmetric(vertical: 10),

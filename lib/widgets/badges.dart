@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_motion.dart';
 import '../core/theme/app_radius.dart';
@@ -51,13 +52,19 @@ class CategoryChip extends StatefulWidget {
 class _CategoryChipState extends State<CategoryChip> {
   bool _pressed = false;
 
+  void _handleTap() {
+    if (widget.onTap == null) return;
+    HapticFeedback.selectionClick();
+    widget.onTap!();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: widget.onTap != null ? (_) => setState(() => _pressed = true) : null,
       onTapUp: widget.onTap != null ? (_) => setState(() => _pressed = false) : null,
       onTapCancel: widget.onTap != null ? () => setState(() => _pressed = false) : null,
-      onTap: widget.onTap,
+      onTap: _handleTap,
       child: AnimatedScale(
         scale: _pressed ? 0.96 : 1.0,
         duration: AppMotion.fast,

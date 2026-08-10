@@ -121,6 +121,7 @@ class HomeScreen extends ConsumerWidget {
                 data: (collections) => collections.isEmpty
                     ? SliverToBoxAdapter(
                         child: EmptyState(
+                          icon: LucideIcons.folderPlus,
                           headline: 'Your first collection',
                           description:
                               'Collections keep your screenshots organised. Start one and your work lives here.',

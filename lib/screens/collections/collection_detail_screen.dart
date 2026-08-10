@@ -66,6 +66,7 @@ class CollectionDetailScreen extends ConsumerWidget {
       body: screenshotsAsync.when(
         data: (shots) => shots.isEmpty
             ? EmptyState(
+                icon: LucideIcons.imagePlus,
                 headline: 'No screenshots yet',
                 description: 'Add a template to start creating screenshots for this collection.',
                 actionLabel: 'Browse templates',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_motion.dart';
 import '../core/theme/app_radius.dart';
@@ -34,6 +35,12 @@ class AppButton extends StatefulWidget {
 class _AppButtonState extends State<AppButton> {
   bool _pressed = false;
 
+  void _handleTap() {
+    if (widget.isLoading || widget.onPressed == null) return;
+    HapticFeedback.lightImpact();
+    widget.onPressed!();
+  }
+
   @override
   Widget build(BuildContext context) {
     final disabled = widget.onPressed == null && !widget.isLoading;
@@ -42,7 +49,7 @@ class _AppButtonState extends State<AppButton> {
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
-      onTap: (widget.isLoading || disabled) ? null : widget.onPressed,
+      onTap: disabled ? null : _handleTap,
       child: AnimatedScale(
         scale: _pressed && !disabled ? 0.98 : 1.0,
         duration: AppMotion.fast,
@@ -69,7 +76,10 @@ class _AppButtonState extends State<AppButton> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (widget.leadingIcon != null) ...[
-                widget.leadingIcon!,
+                IconTheme(
+                  data: IconThemeData(color: fg, size: 20),
+                  child: widget.leadingIcon!,
+                ),
                 const SizedBox(width: AppSpacing.s8),
               ],
               Text(widget.label, style: AppText.labelLarge(color: fg)),
@@ -140,6 +150,11 @@ class AppIconButton extends StatefulWidget {
 class _AppIconButtonState extends State<AppIconButton> {
   bool _pressed = false;
 
+  void _handleTap() {
+    HapticFeedback.lightImpact();
+    widget.onPressed();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -149,7 +164,7 @@ class _AppIconButtonState extends State<AppIconButton> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) => setState(() => _pressed = false),
         onTapCancel: () => setState(() => _pressed = false),
-        onTap: widget.onPressed,
+        onTap: _handleTap,
         child: AnimatedContainer(
           duration: AppMotion.fast,
           width: 40,
