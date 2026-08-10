@@ -270,9 +270,9 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
                       child: TextField(
                         controller: _ctrl,
                         focusNode: _focusNode,
-                        style: AppText.mono(color: AppColors.inkPrimary).copyWith(
+                        style: AppText.bodyLarge(color: AppColors.inkPrimary).copyWith(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: 1.0,
                         ),
                         onSubmitted: _submitColor,
@@ -636,7 +636,12 @@ class StyledInputNumeric extends StatelessWidget {
                   borderRadius: AppRadius.br10,
                 ),
                 alignment: Alignment.center,
-                child: Text(value.toStringAsFixed(1), style: AppText.bodyLarge()),
+                child: Text(
+                  value.toStringAsFixed(1),
+                  style: AppText.bodyLarge(color: AppColors.inkPrimary).copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
             Material(

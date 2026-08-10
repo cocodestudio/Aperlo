@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -239,25 +240,32 @@ class _SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(title, style: AppText.headline3()),
         ),
-        GestureDetector(
-          onTap: onViewAll,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'View all',
-                  style: AppText.labelDefault(color: AppColors.accent),
-                ),
-                const SizedBox(width: 2),
-                const Icon(
-                  LucideIcons.arrowRight,
-                  size: 13,
-                  color: AppColors.accent,
-                ),
-              ],
+        Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onViewAll();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'View all',
+                    style: AppText.labelDefault(color: AppColors.accent),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    LucideIcons.arrowRight,
+                    size: 13,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -144,8 +144,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: Text(
                   'by CoCode Studio',
                   textAlign: TextAlign.center,
-                  style: AppText.mono(color: AppColors.inkMuted).copyWith(
+                  style: AppText.bodyDefault(color: AppColors.inkMuted).copyWith(
                     fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
