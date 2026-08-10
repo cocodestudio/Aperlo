@@ -104,7 +104,11 @@ class CollectionDetailScreen extends ConsumerWidget {
           itemCount: 4,
           itemBuilder: (context, index) => const SkeletonCard(),
         ),
-        error: (e, _) => Center(child: Text('$e', style: AppText.bodyDefault())),
+        error: (e, _) => ErrorState(
+          headline: 'Failed to load screenshots',
+          description: 'We couldn\'t load screenshots for this collection. Please try again.',
+          onRetry: () => ref.invalidate(screenshotsProvider(collectionId)),
+        ),
       ),
     );
   }

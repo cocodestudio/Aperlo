@@ -161,7 +161,11 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
                 itemCount: 6,
                 itemBuilder: (context, _) => const SkeletonCard(),
               ),
-              error: (e, _) => Center(child: Text('$e', style: AppText.bodyDefault())),
+              error: (e, _) => ErrorState(
+                headline: 'Failed to load templates',
+                description: 'We couldn\'t load the template library. Check your connection and try again.',
+                onRetry: () => ref.invalidate(templatesProvider(selectedCategory == 'All' ? null : selectedCategory)),
+              ),
             ),
           ),
         ],

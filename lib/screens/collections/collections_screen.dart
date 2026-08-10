@@ -172,7 +172,11 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
                 childAspectRatio: 4 / 3,
                 children: List.generate(6, (_) => const SkeletonBox(width: null, height: double.infinity, radius: BorderRadius.all(Radius.circular(AppRadius.r12)))),
               ),
-              error: (e, _) => Center(child: Text('$e', style: AppText.bodyDefault())),
+              error: (e, _) => ErrorState(
+                headline: 'Failed to load collections',
+                description: 'We couldn\'t load your collections. Check your connection and try again.',
+                onRetry: () => ref.invalidate(collectionsProvider),
+              ),
             ),
           ),
         ],

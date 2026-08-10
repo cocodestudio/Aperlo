@@ -15,6 +15,7 @@ import '../../providers/app_providers.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/badges.dart';
+import '../../widgets/empty_state.dart';
 
 class TemplatePreviewScreen extends ConsumerStatefulWidget {
   const TemplatePreviewScreen({super.key, required this.templateId, this.preselectedCollectionId});
@@ -39,14 +40,28 @@ class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
         children: [
           templateAsync.when(
             data: (template) => template == null
-                ? const Center(child: Text('Template not found'))
+                ? const EmptyState(
+                    headline: 'Template not found',
+                    description: 'The template you requested is no longer available or was removed.',
+                    icon: LucideIcons.fileQuestion,
+                  )
                 : _TemplatePreviewBody(
                     template: template,
                     preselectedCollectionId: widget.preselectedCollectionId,
                     onTemplateSelected: (id) => setState(() => _currentId = id),
                   ),
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
-            error: (e, _) => Center(child: Text('$e', style: AppText.bodyDefault())),
+            loading: () => const Center(
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
+              ),
+            ),
+            error: (e, _) => ErrorState(
+              headline: 'Failed to load template',
+              description: 'We couldn\'t load the template details. Please try again.',
+              onRetry: () => ref.invalidate(_templateDetailProvider(_currentId)),
+            ),
           ),
           
           // ── Top Navigation Bar ─────────────────────────────────────────────
@@ -303,7 +318,7 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.fromLTRB(AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s40),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -364,7 +379,7 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                const SizedBox(height: AppSpacing.s32),
+                const SizedBox(height: AppSpacing.s24),
 
                 if (template.isPro)
                   AppButton(
@@ -381,7 +396,7 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
                     isFullWidth: true,
                   ),
 
-                const SizedBox(height: AppSpacing.s40),
+                const SizedBox(height: AppSpacing.s24),
 
                 // More like this
                 Row(
@@ -460,9 +475,6 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
             ),
           ),
         ),
-
-        // Bottom safe-area padding
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.s24)),
       ],
     );
   }

@@ -331,23 +331,33 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
           context: context,
           useRootNavigator: false,
           builder: (ctx) => AlertDialog(
-            title: Text(
-              'Export failed',
-              style: AppText.headline2(color: AppColors.destructive),
-            ),
-            content: Text(
-              'An error occurred while exporting: $e',
-              style: AppText.bodyDefault(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(
-                  'OK',
-                  style: AppText.labelLarge(color: AppColors.accent),
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
+            contentPadding: const EdgeInsets.all(AppSpacing.s24),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.destructiveTint,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.alertCircle, size: 28, color: AppColors.destructive),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.s16),
+                Text('Export failed', style: AppText.headline2(color: AppColors.inkPrimary), textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.s8),
+                Text('An unexpected error occurred while exporting. Please check storage permissions and try again.', style: AppText.bodyDefault(color: AppColors.inkMuted), textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.s24),
+                AppButton(
+                  label: 'Dismiss',
+                  onPressed: () => Navigator.pop(ctx),
+                  isFullWidth: true,
+                ),
+              ],
+            ),
           ),
         );
       }

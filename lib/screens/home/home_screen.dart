@@ -161,7 +161,11 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 error: (e, _) => SliverToBoxAdapter(
-                  child: Center(child: Text('$e', style: AppText.bodySmall())),
+                  child: ErrorState(
+                    headline: 'Failed to load collections',
+                    description: 'We couldn\'t load your recent collections.',
+                    onRetry: () => ref.invalidate(collectionsProvider),
+                  ),
                 ),
               ),
             ),
