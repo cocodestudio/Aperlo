@@ -1,0 +1,11 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Template assets (Admin Write-Only, Public Read)
+    match /templates/{templateId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'mastereditor8780@gmail.com' || request.auth.uid == 'WTxsBrSZnuYObZgdAnJzVHZqz7O2');
+    }
+  }
+}

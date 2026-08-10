@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // TEMPLATES: Global read for any user (data is encrypted), admin write only
+    match /templates/{templateId} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'mastereditor8780@gmail.com' || request.auth.uid == 'WTxsBrSZnuYObZgdAnJzVHZqz7O2');
+    }
+  }
+}

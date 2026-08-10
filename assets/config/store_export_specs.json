@@ -1,0 +1,77 @@
+{
+  "specVersion": "2026.07",
+  "lastVerified": "2026-07-04",
+  "appleAppStore": {
+    "requiresExactMatch": true,
+    "colorSpace": "RGB",
+    "allowedFormats": ["PNG", "JPEG"],
+    "alphaChannelAllowed": true,
+    "deviceClasses": [
+      {
+        "id": "iphone_6_9",
+        "label": "iPhone 6.9\" (required)",
+        "width": 1320, "height": 2868,
+        "required": true,
+        "coversDevices": ["iPhone 17 Pro Max", "iPhone 16 Pro Max", "iPhone 16 Plus", "iPhone 15 Plus"],
+        "alsoAccepted": [
+          {"width": 1290, "height": 2796},
+          {"width": 1260, "height": 2736, "note": "iPhone Air native panel"}
+        ]
+      },
+      {
+        "id": "iphone_6_5",
+        "label": "iPhone 6.5\" (fallback only)",
+        "width": 1242, "height": 2688,
+        "required": false,
+        "note": "Only needed if 6.9\" set is not provided"
+      },
+      {
+        "id": "ipad_13",
+        "label": "iPad 13\" (required if app supports iPad)",
+        "width": 2064, "height": 2752,
+        "required": "conditional",
+        "alsoAccepted": [{"width": 2048, "height": 2732, "note": "legacy 12.9\" size, still valid"}]
+      }
+    ],
+    "minPerClass": 1,
+    "maxPerClass": 10
+  },
+  "googlePlay": {
+    "requiresExactMatch": false,
+    "colorSpace": "RGB",
+    "allowedFormats": ["PNG_24BIT_NO_ALPHA", "JPEG"],
+    "alphaChannelAllowed": false,
+    "minSidePx": 320,
+    "maxSidePx": 3840,
+    "maxAspectRatio": 2.0,
+    "maxFileSizeMB": 8,
+    "deviceClasses": [
+      {
+        "id": "phone",
+        "label": "Phone (required)",
+        "recommendedWidth": 1080, "recommendedHeight": 1920,
+        "required": true,
+        "minCount": 2,
+        "featuringMinCount": 4,
+        "featuringMinPx": 1080
+      },
+      {
+        "id": "tablet_7in",
+        "label": "7\" tablet",
+        "recommendedWidth": 1200, "recommendedHeight": 1920,
+        "required": false
+      },
+      {
+        "id": "tablet_10in",
+        "label": "10\" tablet",
+        "recommendedWidth": 1600, "recommendedHeight": 2560,
+        "required": false
+      }
+    ],
+    "featureGraphic": {"width": 1024, "height": 500, "alphaChannelAllowed": false}
+  },
+  "universalSafeZoneMargin": {
+    "horizontal": 0.04,
+    "vertical": 0.05
+  }
+}
