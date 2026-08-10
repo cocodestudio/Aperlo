@@ -344,6 +344,73 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _save();
   }
 
+  void _snapLeft(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_x'] = 'left';
+    layer['x'] = 0.0;
+    layer.remove('cx');
+    updateFn(layer);
+  }
+
+  void _snapRight(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_x'] = 'right';
+    layer['x'] = 0.0;
+    layer.remove('cx');
+    updateFn(layer);
+  }
+
+  void _snapTop(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_y'] = 'top';
+    layer['y'] = 0.0;
+    layer.remove('cy');
+    updateFn(layer);
+  }
+
+  void _snapBottom(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_y'] = 'bottom';
+    layer['y'] = 0.0;
+    layer.remove('cy');
+    updateFn(layer);
+  }
+
+  void _snapCenterH(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_x'] = 'center';
+    layer['cx'] = 0.5;
+    layer['x'] = 0.5;
+    updateFn(layer);
+  }
+
+  void _snapCenterV(Map<String, dynamic> layer, void Function(Map<String, dynamic>) updateFn) {
+    layer['align_y'] = 'center';
+    layer['cy'] = 0.5;
+    layer['y'] = 0.5;
+    updateFn(layer);
+  }
+
+  void _nudgeLayer(Map<String, dynamic> layer, double dx, double dy, void Function(Map<String, dynamic>) updateFn) {
+    if (layer.containsKey('cx') || layer['align_x'] == 'center') {
+      layer['cx'] = ((layer['cx'] as num? ?? 0.5) + dx).clamp(-0.5, 1.5);
+    } else {
+      final alignX = layer['align_x'] as String? ?? 'left';
+      if (alignX == 'right') {
+        layer['x'] = ((layer['x'] as num? ?? 0.0) - dx).clamp(-0.5, 1.5);
+      } else {
+        layer['x'] = ((layer['x'] as num? ?? 0.0) + dx).clamp(-0.5, 1.5);
+      }
+    }
+
+    if (layer.containsKey('cy') || layer['align_y'] == 'center') {
+      layer['cy'] = ((layer['cy'] as num? ?? 0.5) + dy).clamp(-0.5, 1.5);
+    } else {
+      final alignY = layer['align_y'] as String? ?? 'top';
+      if (alignY == 'bottom') {
+        layer['y'] = ((layer['y'] as num? ?? 0.0) - dy).clamp(-0.5, 1.5);
+      } else {
+        layer['y'] = ((layer['y'] as num? ?? 0.0) + dy).clamp(-0.5, 1.5);
+      }
+    }
+    updateFn(layer);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -599,29 +666,32 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
                 ]),
                 buildSection('Layout', [
-                  TextAlignmentControl(value: layer['text_align'] ?? 'left', onChanged: (v) { layer['text_align'] = v; sheetUpdateLayer(layer); }),
+                  TextAlignmentControl(
+                    value: layer['text_align'] as String? ?? layer['align'] as String? ?? 'left',
+                    onChanged: (v) {
+                      layer['text_align'] = v;
+                      layer['align'] = v;
+                      sheetUpdateLayer(layer);
+                    },
+                  ),
                   PropertySlider(label: 'Letter Spacing', value: (layer['letter_spacing'] ?? 0.0).toDouble(), min: -5.0, max: 20.0, onChanged: (v) { layer['letter_spacing'] = v; sheetUpdateLayer(layer); }),
                   PropertySlider(label: 'Line Height', value: (layer['line_height'] ?? 1.2).toDouble(), min: 0.5, max: 3.0, onChanged: (v) { layer['line_height'] = v; sheetUpdateLayer(layer); }),
                 ]),
                 buildSection('Position', [
                   PositionPresets(
-                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
-                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
-                    onChanged: (nx, ny) {
-                      if (layer.containsKey('x')) layer['x'] = nx;
-                      if (layer.containsKey('cx')) layer['cx'] = nx;
-                      if (layer.containsKey('y')) layer['y'] = ny;
-                      if (layer.containsKey('cy')) layer['cy'] = ny;
-                      sheetUpdateLayer(layer);
-                    },
+                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
                   ),
-                  StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
-                    if (layer.containsKey('x')) layer['x'] = x;
-                    if (layer.containsKey('cx')) layer['cx'] = x;
-                    if (layer.containsKey('y')) layer['y'] = y;
-                    if (layer.containsKey('cy')) layer['cy'] = y;
-                    sheetUpdateLayer(layer);
-                  }),
+                  StyledPositionNudge(
+                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                  ),
                 ]),
               ];
             } else if (type == 'image' || type == 'phone') {
@@ -645,23 +715,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ]),
                 buildSection('Position', [
                   PositionPresets(
-                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
-                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
-                    onChanged: (nx, ny) {
-                      if (layer.containsKey('x')) layer['x'] = nx;
-                      if (layer.containsKey('cx')) layer['cx'] = nx;
-                      if (layer.containsKey('y')) layer['y'] = ny;
-                      if (layer.containsKey('cy')) layer['cy'] = ny;
-                      sheetUpdateLayer(layer);
-                    },
+                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
                   ),
-                  StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
-                    if (layer.containsKey('x')) layer['x'] = x;
-                    if (layer.containsKey('cx')) layer['cx'] = x;
-                    if (layer.containsKey('y')) layer['y'] = y;
-                    if (layer.containsKey('cy')) layer['cy'] = y;
-                    sheetUpdateLayer(layer);
-                  }),
+                  StyledPositionNudge(
+                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                  ),
                 ]),
               ];
 
@@ -680,23 +746,19 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ]),
                 buildSection('Position', [
                   PositionPresets(
-                    x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(),
-                    y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(),
-                    onChanged: (nx, ny) {
-                      if (layer.containsKey('x')) layer['x'] = nx;
-                      if (layer.containsKey('cx')) layer['cx'] = nx;
-                      if (layer.containsKey('y')) layer['y'] = ny;
-                      if (layer.containsKey('cy')) layer['cy'] = ny;
-                      sheetUpdateLayer(layer);
-                    },
+                    onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
+                    onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
+                    onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
+                    onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
+                    onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
+                    onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
                   ),
-                  StyledPositionNudge(x: (layer['x'] ?? layer['cx'] ?? 0.5).toDouble(), y: (layer['y'] ?? layer['cy'] ?? 0.5).toDouble(), onChanged: (x, y) {
-                    if (layer.containsKey('x')) layer['x'] = x;
-                    if (layer.containsKey('cx')) layer['cx'] = x;
-                    if (layer.containsKey('y')) layer['y'] = y;
-                    if (layer.containsKey('cy')) layer['cy'] = y;
-                    sheetUpdateLayer(layer);
-                  }),
+                  StyledPositionNudge(
+                    onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
+                    onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
+                    onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
+                    onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
+                  ),
                 ]),
               ];
             }

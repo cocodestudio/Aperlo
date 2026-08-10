@@ -522,7 +522,7 @@ class _TextLayer extends StatelessWidget {
 
     final weight = _fontWeight(layer['weight'] as String? ??
         (layer['bold'] == true ? 'w800' : 'w400'));
-    final align = _textAlign(layer['align'] as String? ?? 'left');
+    final align = _textAlign(layer['text_align'] as String? ?? layer['align'] as String? ?? 'left');
     final int? maxLines = null;
     final TextOverflow? overflow = null;
     final lineHeight = _f(layer['line_height'], 1.2);
@@ -1908,8 +1908,8 @@ class _Positioner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignX = layer['align_x'] as String? ?? 'left';
-    final alignY = layer['align_y'] as String? ?? 'top';
+    final alignX = layer['align_x'] as String? ?? (layer.containsKey('cx') ? 'center' : 'left');
+    final alignY = layer['align_y'] as String? ?? (layer.containsKey('cy') ? 'center' : 'top');
 
     final hasCx = layer.containsKey('cx');
     final hasCy = layer.containsKey('cy');
@@ -1922,26 +1922,28 @@ class _Positioner extends StatelessWidget {
     double? posLeft, posRight, posTop, posBottom;
     double dx = 0.0, dy = 0.0;
 
-    if (hasCx) {
+    if (hasCx && alignX == 'center') {
       posLeft = cx * w;
       dx = -0.5;
+    } else if (alignX == 'right') {
+      posRight = x * w;
+    } else if (alignX == 'center') {
+      posLeft = (hasCx ? cx : x) * w;
+      dx = -0.5;
     } else {
-      if (alignX == 'right') {
-        posRight = (1.0 - x) * w;
-      } else {
-        posLeft = x * w;
-      }
+      posLeft = x * w;
     }
 
-    if (hasCy) {
+    if (hasCy && alignY == 'center') {
       posTop = cy * h;
       dy = -0.5;
+    } else if (alignY == 'bottom') {
+      posBottom = y * h;
+    } else if (alignY == 'center') {
+      posTop = (hasCy ? cy : y) * h;
+      dy = -0.5;
     } else {
-      if (alignY == 'bottom') {
-        posBottom = (1.0 - y) * h;
-      } else {
-        posTop = y * h;
-      }
+      posTop = y * h;
     }
 
     return Positioned(

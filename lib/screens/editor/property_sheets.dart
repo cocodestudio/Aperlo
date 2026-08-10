@@ -613,10 +613,18 @@ class StyledActionTile extends StatelessWidget {
 }
 
 class StyledPositionNudge extends StatelessWidget {
-  final double x, y;
-  final void Function(double, double) onChanged;
-  
-  const StyledPositionNudge({super.key, required this.x, required this.y, required this.onChanged});
+  final VoidCallback onUp;
+  final VoidCallback onDown;
+  final VoidCallback onLeft;
+  final VoidCallback onRight;
+
+  const StyledPositionNudge({
+    super.key,
+    required this.onUp,
+    required this.onDown,
+    required this.onLeft,
+    required this.onRight,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -630,21 +638,21 @@ class StyledPositionNudge extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildNudgeButton(LucideIcons.arrowUp, () => onChanged(x, y - 0.01)),
+            _buildNudgeButton(LucideIcons.arrowUp, onUp),
           ],
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildNudgeButton(LucideIcons.arrowLeft, () => onChanged(x - 0.01, y)),
+            _buildNudgeButton(LucideIcons.arrowLeft, onLeft),
             const SizedBox(width: 40),
-            _buildNudgeButton(LucideIcons.arrowRight, () => onChanged(x + 0.01, y)),
+            _buildNudgeButton(LucideIcons.arrowRight, onRight),
           ],
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildNudgeButton(LucideIcons.arrowDown, () => onChanged(x, y + 0.01)),
+            _buildNudgeButton(LucideIcons.arrowDown, onDown),
           ],
         ),
         const SizedBox(height: 16),
@@ -657,7 +665,8 @@ class StyledPositionNudge extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(4),
-        width: 44, height: 44,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(12),
@@ -673,14 +682,21 @@ class StyledPositionNudge extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class PositionPresets extends StatelessWidget {
-  final double x, y;
-  final void Function(double newX, double newY) onChanged;
+  final VoidCallback onSnapLeft;
+  final VoidCallback onSnapRight;
+  final VoidCallback onSnapTop;
+  final VoidCallback onSnapBottom;
+  final VoidCallback onSnapCenterH;
+  final VoidCallback onSnapCenterV;
 
   const PositionPresets({
     super.key,
-    required this.x,
-    required this.y,
-    required this.onChanged,
+    required this.onSnapLeft,
+    required this.onSnapRight,
+    required this.onSnapTop,
+    required this.onSnapBottom,
+    required this.onSnapCenterH,
+    required this.onSnapCenterV,
   });
 
   @override
@@ -695,22 +711,22 @@ class PositionPresets extends StatelessWidget {
         // Row 1 — horizontal axis
         Row(
           children: [
-            _preset('Left',     LucideIcons.alignLeft,           () => onChanged(0.1, y)),
+            _preset('Left',     LucideIcons.alignLeft,           onSnapLeft),
             const SizedBox(width: 8),
-            _preset('Center H', LucideIcons.alignCenter,         () => onChanged(0.5, y)),
+            _preset('Center H', LucideIcons.alignCenter,         onSnapCenterH),
             const SizedBox(width: 8),
-            _preset('Right',    LucideIcons.alignRight,          () => onChanged(0.9, y)),
+            _preset('Right',    LucideIcons.alignRight,          onSnapRight),
           ],
         ),
         const SizedBox(height: 8),
         // Row 2 — vertical axis
         Row(
           children: [
-            _preset('Top',      LucideIcons.alignStartVertical,  () => onChanged(x, 0.1)),
+            _preset('Top',      LucideIcons.alignStartVertical,  onSnapTop),
             const SizedBox(width: 8),
-            _preset('Center V', LucideIcons.alignCenterVertical, () => onChanged(x, 0.5)),
+            _preset('Center V', LucideIcons.alignCenterVertical, onSnapCenterV),
             const SizedBox(width: 8),
-            _preset('Bottom',   LucideIcons.alignEndVertical,    () => onChanged(x, 0.9)),
+            _preset('Bottom',   LucideIcons.alignEndVertical,    onSnapBottom),
           ],
         ),
         const SizedBox(height: 16),
