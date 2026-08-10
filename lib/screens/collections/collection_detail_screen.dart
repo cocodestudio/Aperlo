@@ -1,5 +1,6 @@
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -144,6 +145,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                 leading: const Icon(LucideIcons.pencil),
                 title: Text('Rename', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx); 
                   _showRenameDialog(context, ref, currentName);
                 },
@@ -153,6 +155,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                 leading: const Icon(LucideIcons.download),
                 title: Text('Export all', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   final col = ref.read(collectionsProvider).valueOrNull?.where((c) => c.id == collectionId).firstOrNull;
                   if (col == null || col.screenshotIds.isEmpty) {
@@ -180,6 +183,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                 leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
                 title: Text('Delete collection', style: AppText.labelLarge(color: AppColors.destructive)),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   _confirmDelete(context, ref);
                 },
@@ -439,6 +443,7 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
                 leading: const Icon(LucideIcons.pencil),
                 title: Text('Rename', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   _showRenameDialog(context);
                 },
@@ -448,6 +453,7 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
                 leading: const Icon(LucideIcons.download),
                 title: Text('Export', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   showModalBottomSheet(
                     context: context,
@@ -463,6 +469,7 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
                 leading: const Icon(LucideIcons.copy),
                 title: Text('Duplicate', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   _duplicateScreenshot();
                 },
@@ -476,6 +483,7 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
                 leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
                 title: Text('Delete', style: AppText.labelLarge(color: AppColors.destructive)),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   _confirmDelete(context);
                 },

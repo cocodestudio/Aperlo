@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -553,7 +554,10 @@ class _CollectionPickerSheet extends StatelessWidget {
                   Text('Add to collection', style: AppText.headline2()),
                   if (onCreateNew != null)
                     GestureDetector(
-                      onTap: onCreateNew,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        onCreateNew!();
+                      },
                       child: Row(
                         children: [
                           const Icon(LucideIcons.plus, size: 16, color: AppColors.accent),
@@ -586,7 +590,10 @@ class _CollectionPickerSheet extends StatelessWidget {
                       ),
                       title: Text(c.name, style: AppText.labelLarge()),
                       subtitle: Text('${c.screenshotCount} screenshots', style: AppText.bodySmall(color: AppColors.inkMuted)),
-                      onTap: () => Navigator.pop(context, c.id),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.pop(context, c.id);
+                      },
                     ),
                   );
                 },

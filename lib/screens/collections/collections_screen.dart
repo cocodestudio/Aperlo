@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -391,6 +392,7 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
                 leading: const Icon(LucideIcons.folderOpen),
                 title: Text('Open', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   context.push('/collections/${c.id}');
                 },
@@ -399,19 +401,28 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
                 leading: const Icon(LucideIcons.pencil),
                 title: Text('Rename', style: AppText.labelLarge()),
-                onTap: () { Navigator.pop(sheetCtx); _showRenameDialog(context); },
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(sheetCtx);
+                  _showRenameDialog(context);
+                },
               ),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
                 leading: const Icon(LucideIcons.copy),
                 title: Text('Duplicate', style: AppText.labelLarge()),
-                onTap: () { Navigator.pop(sheetCtx); _duplicate(); },
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(sheetCtx);
+                  _duplicate();
+                },
               ),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
                 leading: const Icon(LucideIcons.download),
                 title: Text('Export all', style: AppText.labelLarge()),
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   Navigator.pop(sheetCtx);
                   if (widget.collection.screenshotIds.isEmpty) {
                     AppToast.show(context, message: 'Collection is empty', type: AppToastType.info);
@@ -437,7 +448,11 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
                 leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
                 title: Text('Delete', style: AppText.labelLarge(color: AppColors.destructive)),
-                onTap: () { Navigator.pop(sheetCtx); _confirmDelete(context); },
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.pop(sheetCtx);
+                  _confirmDelete(context);
+                },
               ),
               const SizedBox(height: AppSpacing.s16),
             ],
