@@ -236,7 +236,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   void _onTapLayer(int index) {
     final type = _templateLayers[index]['type'] as String? ?? '';
-    if (type == 'phone' || type == 'background') return;
+    if (type == 'background') return;
     
     setState(() {
       _selectedLayerIndex = index;
@@ -320,7 +320,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } else {
       final alignX = layer['align_x'] as String? ?? 'left';
       if (alignX == 'right') {
-        layer['x'] = (layer['x'] as num? ?? 1.0) + dx;
+        layer['x'] = (layer['x'] as num? ?? 0.0) - dx;
       } else {
         layer['x'] = (layer['x'] as num? ?? 0.0) + dx;
       }
@@ -331,7 +331,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     } else {
       final alignY = layer['align_y'] as String? ?? 'top';
       if (alignY == 'bottom') {
-        layer['y'] = (layer['y'] as num? ?? 1.0) + dy;
+        layer['y'] = (layer['y'] as num? ?? 0.0) - dy;
       } else {
         layer['y'] = (layer['y'] as num? ?? 0.0) + dy;
       }

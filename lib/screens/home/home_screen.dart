@@ -241,27 +241,27 @@ class _SectionHeader extends StatelessWidget {
           child: Text(title, style: AppText.headline3()),
         ),
         Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          color: AppColors.accentTint.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(20),
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             onTap: () {
               HapticFeedback.selectionClick();
               onViewAll();
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'View all',
-                    style: AppText.labelDefault(color: AppColors.accent),
+                    style: AppText.labelDefault(color: AppColors.accent).copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 4),
                   const Icon(
                     LucideIcons.arrowRight,
-                    size: 13,
+                    size: 14,
                     color: AppColors.accent,
                   ),
                 ],
