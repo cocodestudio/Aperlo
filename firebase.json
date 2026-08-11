@@ -1,1 +1,43 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"flutter":{"platforms":{"android":{"default":{"projectId":"framekit-app","appId":"1:327452502709:android:f8a565f851cbaf6e2d6cfc","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"framekit-app","configurations":{"ios":"1:327452502709:ios:36db45e594d045e32d6cfc"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "appAssociation": "NONE"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "framekit-app",
+          "appId": "1:327452502709:android:f8a565f851cbaf6e2d6cfc",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "framekit-app",
+          "configurations": {
+            "ios": "1:327452502709:ios:36db45e594d045e32d6cfc"
+          }
+        }
+      }
+    }
+  }
+}

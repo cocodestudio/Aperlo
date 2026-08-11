@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aperlo - App Store Screenshot Maker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #F5F7F5;
+      color: #141A14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #1A6B4A;
+    }
+    p {
+      font-size: 16px;
+      color: #6C7A72;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #1A6B4A;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #124d35;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>View this Template</h1>
+    <p>To view and edit this template, you need the Aperlo app. Download it now to start creating beautiful app store screenshots.</p>
+    <a href="#" id="store-link" class="btn">Download Aperlo</a>
+  </div>
+
+  <script>
+    function getMobileOperatingSystem() {
+      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (/android/i.test(userAgent)) {
+        return "Android";
+      }
+      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        return "iOS";
+      }
+      return "unknown";
+    }
+
+    var os = getMobileOperatingSystem();
+    var storeLink = document.getElementById('store-link');
+    
+    // Replace these placeholders with actual store links later
+    var iosLink = "https://apps.apple.com/app/id123456789"; 
+    var androidLink = "https://play.google.com/store/apps/details?id=com.cocode.aperlo";
+
+    if (os === "iOS") {
+      storeLink.href = iosLink;
+      storeLink.innerText = "Download on the App Store";
+      window.location.href = iosLink; // Auto-redirect
+    } else if (os === "Android") {
+      storeLink.href = androidLink;
+      storeLink.innerText = "Get it on Google Play";
+      window.location.href = androidLink; // Auto-redirect
+    } else {
+      storeLink.href = iosLink; // Fallback for desktop
+      storeLink.innerText = "Download App";
+    }
+  </script>
+</body>
+</html>

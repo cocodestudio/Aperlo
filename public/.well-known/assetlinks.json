@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.cocode.aperlo",
+    "sha256_cert_fingerprints": [
+      "57:FC:EB:0E:52:C7:94:BF:B7:47:6C:D3:C8:4C:16:CA:4A:B5:44:FD:4A:5D:30:08:14:2D:92:FA:58:E9:2F:8F"
+    ]
+  }
+}]

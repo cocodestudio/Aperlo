@@ -369,11 +369,10 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-        ),
+      builder: (sheetCtx) => Material(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+        clipBehavior: Clip.antiAlias,
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,

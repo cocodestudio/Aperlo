@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -96,7 +97,8 @@ class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
                 _GlassIconButton(
                   icon: LucideIcons.share2,
                   onTap: () {
-                    AppToast.show(context, message: 'Sharing coming soon', type: AppToastType.info);
+                    final shareLink = 'https://framekit-app.web.app/templates/$_currentId';
+                    Share.share('Check out this template on Aperlo: $shareLink');
                   },
                 ),
               ],
@@ -527,11 +529,10 @@ class _CollectionPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-      ),
+    return Material(
+      color: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+      clipBehavior: Clip.antiAlias,
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

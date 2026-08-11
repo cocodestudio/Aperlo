@@ -47,6 +47,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _navigate() async {
     if (!mounted) return;
 
+    final uri = GoRouterState.of(context).uri;
+    final nextPath = uri.queryParameters['next'];
+
     final settingsBox = Hive.box('settings');
     final hasSeenOnboarding =
         settingsBox.get('hasSeenOnboarding', defaultValue: false) as bool;
@@ -66,7 +69,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       return;
     }
 
-    context.go('/home');
+    if (nextPath != null && nextPath.isNotEmpty && nextPath != '/') {
+      context.go(nextPath);
+    } else {
+      context.go('/home');
+    }
   }
 
   @override

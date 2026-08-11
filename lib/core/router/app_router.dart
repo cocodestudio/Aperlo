@@ -26,8 +26,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final loc = state.uri.toString();
       
       if (!Hive.isBoxOpen('settings')) {
-        if (loc == '/splash') return null;
-        return '/splash';
+        if (loc.startsWith('/splash')) return null;
+        if (loc == '/') return '/splash';
+        return '/splash?next=${Uri.encodeComponent(loc)}';
       }
 
       final settingsBox = Hive.box('settings');
