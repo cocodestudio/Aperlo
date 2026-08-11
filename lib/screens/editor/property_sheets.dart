@@ -501,10 +501,7 @@ class TogglePillGroup extends StatelessWidget {
           final isSelected = opt == selectedValue;
           return Expanded(
             child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                onChanged(opt);
-              },
+              onTap: () => onChanged(opt),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(vertical: 8),
