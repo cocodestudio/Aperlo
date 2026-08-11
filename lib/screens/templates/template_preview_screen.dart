@@ -3,6 +3,7 @@ import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -94,13 +95,14 @@ class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
                     }
                   },
                 ),
-                _GlassIconButton(
-                  icon: LucideIcons.share2,
-                  onTap: () {
-                    final shareLink = 'https://framekit-app.web.app/templates/$_currentId';
-                    Share.share('Check out this template on Aperlo: $shareLink');
-                  },
-                ),
+                if (false) // TODO: Re-enable when custom domain is set up
+                  _GlassIconButton(
+                    icon: LucideIcons.share2,
+                    onTap: () {
+                      final shareLink = 'https://framekit-app.web.app/templates/$_currentId';
+                      Share.share('Check out this template on Aperlo: $shareLink');
+                    },
+                  ),
               ],
             ),
           ),
@@ -244,6 +246,14 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
       if (col != null) {
         await ref.read(collectionsNotifierProvider.notifier).addScreenshot(col, screenshot.id);
       }
+
+      // Increment totalUses for this template in Firestore in the background
+      FirebaseFirestore.instance
+          .collection('templates')
+          .doc(widget.template.id)
+          .update({'totalUses': FieldValue.increment(1)})
+          .catchError((_) {});
+
       if (mounted) context.push('/editor/${screenshot.id}');
     } catch (e, stack) {
       debugPrint('Error creating screenshot: $e\n$stack');

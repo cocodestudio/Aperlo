@@ -20,6 +20,7 @@ class Template {
     this.subheadlineFont = 'DM Sans',
     this.layout = const [],
     this.createdAt,
+    this.totalUses = 0,
   });
 
   final String id;
@@ -38,6 +39,7 @@ class Template {
   final String subheadlineFont;
   final List<Map<String, dynamic>> layout;
   final int? createdAt;
+  final int totalUses;
 
   String get fileSizeLabel {
     if (fileSizeBytes < 1024 * 1024) return '${(fileSizeBytes / 1024).toStringAsFixed(1)} KB';
@@ -53,6 +55,7 @@ class Template {
         headlineFont: headlineFont, subheadlineFont: subheadlineFont,
         layout: layout,
         createdAt: createdAt,
+        totalUses: totalUses,
       );
 
   Map<String, dynamic> toMap() => {
@@ -63,6 +66,7 @@ class Template {
         'headlineFont': headlineFont, 'subheadlineFont': subheadlineFont,
         'layout': layout,
         'createdAt': createdAt,
+        'totalUses': totalUses,
       };
 
   static final _secretKey = enc.Key.fromUtf8('FrameKitSecureKey2026!@#\$1234567');
@@ -124,6 +128,7 @@ class Template {
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
         createdAt: _parseCreatedAt(map['createdAt']),
+        totalUses: map['totalUses'] as int? ?? 0,
       );
   }
 }
