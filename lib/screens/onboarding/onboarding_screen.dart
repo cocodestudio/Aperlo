@@ -174,7 +174,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   void _onPageChanged(int i) {
     setState(() => _page = i);
-    _entryCtrl.forward(from: 0);
   }
 
   @override
@@ -306,10 +305,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           color: AppColors.accentTint,
                           borderRadius: BorderRadius.circular(AppRadius.r6),
                         ),
-                        child: Text(
-                          _pages[_page].tag.toUpperCase(),
-                          style: AppText.labelSmall(color: AppColors.accent)
-                              .copyWith(letterSpacing: 0.8, fontWeight: FontWeight.w700),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: Text(
+                            _pages[_page].tag.toUpperCase(),
+                            key: ValueKey('tag_$_page'),
+                            style: AppText.labelSmall(color: AppColors.accent)
+                                .copyWith(letterSpacing: 0.8, fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
                     ),
@@ -382,9 +385,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       child: Row(
                         children: [
                           // Step counter — bottom left
-                          Text(
-                            '${_page + 1} of ${_pages.length}',
-                            style: AppText.mono(color: AppColors.inkDisabled),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Text(
+                              '${_page + 1} of ${_pages.length}',
+                              key: ValueKey('step_$_page'),
+                              style: AppText.mono(color: AppColors.inkDisabled),
+                            ),
                           ),
                           const Spacer(),
                           // Next button — circular
