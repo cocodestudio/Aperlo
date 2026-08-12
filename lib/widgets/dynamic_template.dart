@@ -527,7 +527,6 @@ class _TextLayer extends StatelessWidget {
     final TextOverflow? overflow = null;
     final lineHeight = _f(layer['line_height'], 1.2);
     final letterSpacing = _f(layer['letter_spacing']);
-    final rotation = _f(layer['rotation']); // degrees
 
     final defaultColor = _color(layer['color'], const Color(0xFF141A14));
     final finalColor = token == 'headline' && headlineColor != null
@@ -597,13 +596,7 @@ class _TextLayer extends StatelessWidget {
 
     final inner = Opacity(
       opacity: opacity.clamp(0.0, 1.0),
-      child: rotation != 0
-          ? Transform.rotate(
-              angle: rotation * math.pi / 180,
-              alignment: Alignment.topLeft,
-              child: textWidget,
-            )
-          : textWidget,
+      child: _apply3DTransform(textWidget, layer),
     );
 
     return _Positioner(
@@ -709,23 +702,7 @@ class _PhoneLayer extends StatelessWidget {
       scale: scale,
     );
 
-    final rotZ = _f(layer['rotation']);
-    final rotX = _f(layer['rotation_x']);
-    final rotY = _f(layer['rotation_y']);
-
-    if (rotX != 0 || rotY != 0 || rotZ != 0) {
-      final matrix = Matrix4.identity()
-        ..setEntry(3, 2, 0.001)
-        ..rotateX(rotX * math.pi / 180)
-        ..rotateY(rotY * math.pi / 180)
-        ..rotateZ(rotZ * math.pi / 180);
-
-      phone = Transform(
-        transform: matrix,
-        alignment: Alignment.center,
-        child: phone,
-      );
-    }
+    phone = _apply3DTransform(phone, layer);
 
     return _Positioner(
       layer: layer, w: w, h: h,
@@ -1882,6 +1859,27 @@ class _DividerLayer extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _apply3DTransform(Widget child, Map<String, dynamic> layer) {
+  final rotZ = _f(layer['rotation']);
+  final rotX = _f(layer['rotation_x']);
+  final rotY = _f(layer['rotation_y']);
+
+  if (rotX != 0 || rotY != 0 || rotZ != 0) {
+    final matrix = Matrix4.identity()
+      ..setEntry(3, 2, 0.001)
+      ..rotateX(rotX * math.pi / 180)
+      ..rotateY(rotY * math.pi / 180)
+      ..rotateZ(rotZ * math.pi / 180);
+
+    return Transform(
+      transform: matrix,
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+  return child;
 }
 
 class _Positioner extends StatelessWidget {
