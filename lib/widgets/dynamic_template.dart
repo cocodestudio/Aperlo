@@ -686,11 +686,12 @@ class _PhoneLayer extends StatelessWidget {
     final aspectRatio = _f(layer['aspect_ratio'], 19.5 / 9);
     final phoneH = phoneW * aspectRatio;
 
-    final rotation = _f(layer['rotation']); // degrees
     final frameColor =
         deviceFrameColor ?? _color(layer['frame_color'], const Color(0xFF1C1C1E));
     final bezelThick = _f(layer['bezel'], 8.0) * (w / 390.0) * scale;
     final radius = _f(layer['radius'], 38.0) * (w / 390.0) * scale;
+    final depth = _f(layer['depth'], 0.0) * (w / 390.0) * scale;
+    final depthColor = _color(layer['depth_color'], const Color(0xFF0F0F10));
     final style = layer['style'] as String? ?? 'dynamic_island';
     final shadow = layer['shadow'] != false;
     final opacity = _f(layer['opacity'], 1.0);
@@ -701,14 +702,27 @@ class _PhoneLayer extends StatelessWidget {
       frameColor: frameColor,
       bezelThick: bezelThick,
       radius: radius,
+      depth: depth,
+      depthColor: depthColor,
       style: style,
       shadow: shadow,
       scale: scale,
     );
 
-    if (rotation != 0) {
-      phone = Transform.rotate(
-        angle: rotation * math.pi / 180,
+    final rotZ = _f(layer['rotation']);
+    final rotX = _f(layer['rotation_x']);
+    final rotY = _f(layer['rotation_y']);
+
+    if (rotX != 0 || rotY != 0 || rotZ != 0) {
+      final matrix = Matrix4.identity()
+        ..setEntry(3, 2, 0.001)
+        ..rotateX(rotX * math.pi / 180)
+        ..rotateY(rotY * math.pi / 180)
+        ..rotateZ(rotZ * math.pi / 180);
+
+      phone = Transform(
+        transform: matrix,
+        alignment: Alignment.center,
         child: phone,
       );
     }
@@ -737,6 +751,8 @@ class _PhoneLayer extends StatelessWidget {
     required Color frameColor,
     required double bezelThick,
     required double radius,
+    required double depth,
+    required Color depthColor,
     required String style,
     required bool shadow,
     required double scale,
@@ -745,27 +761,37 @@ class _PhoneLayer extends StatelessWidget {
     final innerH = phoneH - bezelThick * 2;
     final innerRadius = (radius - bezelThick).clamp(0, radius - 2).toDouble();
 
+    List<BoxShadow> shadows = [];
+    if (depth > 0) {
+      for (int i = 1; i <= depth.round(); i++) {
+        shadows.add(BoxShadow(
+          color: depthColor,
+          offset: Offset(i.toDouble(), i.toDouble()),
+          blurRadius: 0,
+        ));
+      }
+    }
+    if (shadow) {
+      shadows.add(BoxShadow(
+        color: Colors.black.withValues(alpha: 0.3),
+        blurRadius: 32 * (w / 390.0) * scale,
+        spreadRadius: -4 * (w / 390.0) * scale,
+        offset: Offset(depth + 0, depth + 16 * (w / 390.0) * scale),
+      ));
+      shadows.add(BoxShadow(
+        color: Colors.black.withValues(alpha: 0.12),
+        blurRadius: 8 * (w / 390.0) * scale,
+        offset: Offset(depth + 0, depth + 4 * (w / 390.0) * scale),
+      ));
+    }
+
     return Container(
       width: phoneW,
       height: phoneH,
       decoration: BoxDecoration(
         color: frameColor,
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: shadow
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 32 * (w / 390.0) * scale,
-                  spreadRadius: -4 * (w / 390.0) * scale,
-                  offset: Offset(0, 16 * (w / 390.0) * scale),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 8 * (w / 390.0) * scale,
-                  offset: Offset(0, 4 * (w / 390.0) * scale),
-                ),
-              ]
-            : null,
+        boxShadow: shadows.isNotEmpty ? shadows : null,
       ),
       child: Center(
         child: ClipRRect(
