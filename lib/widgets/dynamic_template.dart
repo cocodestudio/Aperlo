@@ -814,33 +814,6 @@ class _PhoneLayer extends StatelessWidget {
           ),
         );
 
-      // Classic iPhone circle notch
-      case 'circle_notch':
-        return Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: EdgeInsets.only(top: w * 0.03),
-            child: Container(
-              width: w * 0.18,
-              height: w * 0.065,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(w * 0.033),
-              ),
-              child: Center(
-                child: Container(
-                  width: w * 0.055,
-                  height: w * 0.055,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1C1C1E),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-
       // iPhone X / 11 / 12 wide notch
       case 'bar_notch':
         return CustomPaint(

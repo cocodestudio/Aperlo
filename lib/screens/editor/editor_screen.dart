@@ -724,6 +724,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   title: 'Transform',
                   content: buildSection('Transform', [
                     PropertySlider(label: 'Scale', value: (layer['scale'] ?? 1.0).toDouble(), min: 0.1, max: 3.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['scale'] = v; sheetUpdateLayer(layer); }),
+                    if (type == 'phone')
+                      PropertySlider(label: 'Mockup Height', value: (layer['aspect_ratio'] ?? (19.5 / 9)).toDouble(), min: 1.0, max: 3.0, valueFormatter: (v) => '${v.toStringAsFixed(2)}x', onChanged: (v) { layer['aspect_ratio'] = v; sheetUpdateLayer(layer); }),
                     PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
                     PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
                   ]),

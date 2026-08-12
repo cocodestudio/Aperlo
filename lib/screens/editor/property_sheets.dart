@@ -1019,7 +1019,6 @@ class MockupStyleSelector extends StatelessWidget {
 
   static const Map<String, String> _styles = {
     'dynamic_island': 'Dynamic Island',
-    'circle_notch': 'Circle Notch',
     'bar_notch': 'Bar Notch',
     'punch_hole': 'Punch Hole',
     'flat': 'Flat (Android)',
@@ -1040,26 +1039,6 @@ class MockupStyleSelector extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(2),
-          ),
-        );
-      case 'circle_notch':
-        notch = Container(
-          margin: const EdgeInsets.only(top: 2.5),
-          width: 9,
-          height: 4.5,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2.5),
-          ),
-          child: Center(
-            child: Container(
-              width: 2.5,
-              height: 2.5,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.surface : AppColors.surfaceMuted,
-                shape: BoxShape.circle,
-              ),
-            ),
           ),
         );
       case 'bar_notch':
