@@ -257,11 +257,54 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _deleteLayer(int index) {
+    if (index < 0 || index >= _templateLayers.length) return;
     _pushUndo();
     setState(() {
       _templateLayers.removeAt(index);
       _selectedLayerIndex = null;
       _activePropertyCategory = null;
+    });
+    _save();
+  }
+
+  void _duplicateLayer(int index) {
+    if (index < 0 || index >= _templateLayers.length) return;
+    _pushUndo();
+    final cloned = Map<String, dynamic>.from(_templateLayers[index]);
+    if (cloned.containsKey('x') && cloned['x'] is num) {
+      cloned['x'] = (cloned['x'] as num).toDouble() + 0.03;
+    }
+    if (cloned.containsKey('y') && cloned['y'] is num) {
+      cloned['y'] = (cloned['y'] as num).toDouble() + 0.03;
+    }
+    setState(() {
+      _templateLayers.insert(index + 1, cloned);
+      _selectedLayerIndex = index + 1;
+      _activePropertyCategory = null;
+    });
+    _save();
+  }
+
+  void _toggleVisibility(int index) {
+    if (index < 0 || index >= _templateLayers.length) return;
+    _pushUndo();
+    final layer = Map<String, dynamic>.from(_templateLayers[index]);
+    final currentVisible = layer['visible'] as bool? ?? true;
+    layer['visible'] = !currentVisible;
+    setState(() {
+      _templateLayers[index] = layer;
+    });
+    _save();
+  }
+
+  void _toggleLock(int index) {
+    if (index < 0 || index >= _templateLayers.length) return;
+    _pushUndo();
+    final layer = Map<String, dynamic>.from(_templateLayers[index]);
+    final currentLocked = layer['locked'] as bool? ?? false;
+    layer['locked'] = !currentLocked;
+    setState(() {
+      _templateLayers[index] = layer;
     });
     _save();
   }
@@ -281,12 +324,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.35,
-          maxChildSize: 0.92,
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
           expand: false,
           builder: (ctx, scroll) => _LayersPanel(
             layers: _templateLayers,
@@ -301,6 +345,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             },
             onDelete: (index) {
               _deleteLayer(index);
+              setSheetState(() {});
+            },
+            onDuplicate: (index) {
+              _duplicateLayer(index);
+              setSheetState(() {});
+            },
+            onToggleVisibility: (index) {
+              _toggleVisibility(index);
+              setSheetState(() {});
+            },
+            onToggleLock: (index) {
+              _toggleLock(index);
               setSheetState(() {});
             },
             scrollController: scroll,
@@ -1596,6 +1652,9 @@ class _LayersPanel extends StatelessWidget {
     required this.onReorder,
     required this.onTap,
     required this.onDelete,
+    required this.onDuplicate,
+    required this.onToggleVisibility,
+    required this.onToggleLock,
     required this.scrollController,
   });
 
@@ -1604,6 +1663,9 @@ class _LayersPanel extends StatelessWidget {
   final void Function(int oldIndex, int newIndex) onReorder;
   final void Function(int index) onTap;
   final void Function(int index) onDelete;
+  final void Function(int index) onDuplicate;
+  final void Function(int index) onToggleVisibility;
+  final void Function(int index) onToggleLock;
   final ScrollController scrollController;
 
   static IconData _iconForType(String type) => switch (type) {
@@ -1624,29 +1686,30 @@ class _LayersPanel extends StatelessWidget {
     final type = layer['type'] as String? ?? 'layer';
     switch (type) {
       case 'background':
-        return 'Background';
+        return 'Background Canvas';
       case 'text':
         final c = layer['content'] as String? ?? '';
         if (c.contains('{headline}')) return 'Headline Text';
         if (c.contains('{subheadline}')) return 'Subheadline Text';
-        if (c.length > 24) return '${c.substring(0, 24)}…';
-        return c.isEmpty ? 'Text' : c;
+        if (c.length > 22) return '${c.substring(0, 22)}…';
+        return c.isEmpty ? 'Text Block' : c;
       case 'phone':
-        return 'Device Mockup';
+        final style = layer['mockup_style'] as String? ?? 'Flat';
+        return 'Phone Mockup ($style)';
       case 'shape':
         final shape = layer['shape_type'] as String? ?? 'Circle';
         final formattedShape = shape.isNotEmpty ? '${shape[0].toUpperCase()}${shape.substring(1)}' : 'Circle';
         return '$formattedShape Shape';
       case 'badge':
         final c = layer['content'] as String? ?? 'Badge';
-        return c.length > 24 ? '${c.substring(0, 24)}…' : c;
+        return c.length > 22 ? '${c.substring(0, 22)}…' : c;
       case 'feature_row':
         final icon = layer['icon'] ?? '●';
         final c = layer['content'] as String? ?? 'Feature';
-        final formatted = c.length > 24 ? '${c.substring(0, 24)}…' : c;
+        final formatted = c.length > 22 ? '${c.substring(0, 22)}…' : c;
         return '$icon $formatted';
       case 'image':
-        return 'Image';
+        return 'Image Element';
       case 'frosted_panel':
         return 'Frosted Panel';
       case 'accent_bar':
@@ -1658,8 +1721,40 @@ class _LayersPanel extends StatelessWidget {
     }
   }
 
+  static String _subtitleForLayer(Map<String, dynamic> layer) {
+    final type = layer['type'] as String? ?? 'layer';
+    final opacity = ((layer['opacity'] as num? ?? 1.0) * 100).toInt();
+    final isLocked = layer['locked'] as bool? ?? false;
+    final isVisible = layer['visible'] as bool? ?? true;
+
+    final List<String> details = [];
+    if (!isVisible) details.add('Hidden');
+    if (isLocked) details.add('Locked');
+
+    switch (type) {
+      case 'text':
+        final fontSize = (((layer['font_size'] ?? 0.08) as num) * 390).round();
+        details.add('${fontSize}px');
+        break;
+      case 'phone':
+        final scale = (((layer['scale'] ?? 1.0) as num) * 100).round();
+        details.add('$scale% scale');
+        break;
+      case 'shape':
+        final shape = layer['shape_type'] as String? ?? 'shape';
+        details.add(shape);
+        break;
+      default:
+        break;
+    }
+
+    if (opacity < 100) details.add('$opacity% opacity');
+    return details.isEmpty ? type.toUpperCase() : details.join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     final reversed = layers
         .asMap()
         .entries
@@ -1668,115 +1763,508 @@ class _LayersPanel extends StatelessWidget {
         .reversed
         .toList();
 
-    return PropertySheetLayout(
-      children: [
-        Row(
-          children: [
-            Text('Layers', style: AppText.headline2()),
-            const Spacer(),
-            Text('${reversed.length} layer${reversed.length != 1 ? 's' : ''}', style: AppText.labelDefault(color: AppColors.inkMuted)),
-          ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 540),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+          boxShadow: AppShadows.float,
+          border: Border.all(color: AppColors.borderSubtle, width: 1),
         ),
-        const SizedBox(height: 16),
-        ReorderableListView.builder(
-          scrollController: scrollController,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: reversed.length,
-          onReorder: (oldI, newI) {
-            if (oldI < newI) newI -= 1;
-            final realOld = reversed[oldI].key;
-            final realNew = reversed[newI].key;
-            onReorder(realOld, realNew);
-          },
-          itemBuilder: (ctx, i) {
-            final entry = reversed[i];
-            final realIndex = entry.key;
-            final layer = entry.value;
-            final type = layer['type'] as String? ?? '';
-            final isSelected = selectedIndex == realIndex;
-            final isDeletable = type != 'background';
-
-            return Dismissible(
-              key: ValueKey('layer_$realIndex'),
-              direction: isDeletable ? DismissDirection.endToStart : DismissDirection.none,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 20),
-                decoration: BoxDecoration(color: AppColors.destructiveTint, borderRadius: AppRadius.br12),
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: const Icon(LucideIcons.trash2, color: AppColors.destructive, size: 20),
-              ),
-              confirmDismiss: (direction) async {
-                onDelete(realIndex);
-                return false;
-              },
-              child: InkWell(
-                onTap: () => onTap(realIndex),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Drag Handle Pill ─────────────────────────────────────────
+              Center(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.accentTint : AppColors.surface,
-                    borderRadius: AppRadius.br12,
-                    border: Border.all(color: isSelected ? AppColors.accent : AppColors.borderSubtle),
+                    color: AppColors.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  padding: const EdgeInsets.all(AppSpacing.s12),
-                  child: Row(
+                ),
+              ),
+
+              // ── Studio Header ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentTint,
+                        borderRadius: AppRadius.br10,
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        LucideIcons.layers,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Studio Layers',
+                                style: AppText.headline2().copyWith(fontSize: 17),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentTint,
+                                  borderRadius: BorderRadius.circular(AppRadius.r6),
+                                ),
+                                child: Text(
+                                  '${reversed.length} items',
+                                  style: AppText.labelSmall(color: AppColors.accent).copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Top-to-bottom depth stack • Drag to adjust hierarchy',
+                            style: AppText.bodySmall(color: AppColors.inkMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(color: AppColors.borderSubtle, height: 1),
+
+              // ── Reorderable Layer List ─────────────────────────────────────
+              Flexible(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: reversed.length,
+                        onReorderStart: (_) {
+                          HapticFeedback.mediumImpact();
+                        },
+                        proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, _) {
+                              final t = Curves.easeOutCubic.transform(animation.value);
+                              final scale = ui.lerpDouble(1.0, 1.025, t)!;
+                              final elevation = ui.lerpDouble(0.0, 14.0, t)!;
+                              return Transform.scale(
+                                scale: scale,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  elevation: elevation,
+                                  shadowColor: AppColors.accent.withValues(alpha: 0.3),
+                                  borderRadius: AppRadius.br12,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface,
+                                      borderRadius: AppRadius.br12,
+                                      border: Border.all(color: AppColors.accent, width: 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.accent.withValues(alpha: 0.18),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: child,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        onReorder: (oldI, newI) {
+                          if (oldI < newI) newI -= 1;
+                          final realOld = reversed[oldI].key;
+                          final realNew = reversed[newI].key;
+                          onReorder(realOld, realNew);
+                        },
+                        itemBuilder: (ctx, i) {
+                          final entry = reversed[i];
+                          final realIndex = entry.key;
+                          final layer = entry.value;
+                          final type = layer['type'] as String? ?? '';
+                          final isSelected = selectedIndex == realIndex;
+                          final isLocked = layer['locked'] as bool? ?? false;
+                          final isVisible = layer['visible'] as bool? ?? true;
+                          final zIndexNum = reversed.length - i;
+
+                          return Container(
+                            key: ValueKey('layer_$realIndex'),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.accentTint.withValues(alpha: 0.8)
+                                  : AppColors.surfaceMuted.withValues(alpha: 0.45),
+                              borderRadius: AppRadius.br12,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.accent
+                                    : AppColors.borderSubtle,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.accent.withValues(alpha: 0.12),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                splashColor: AppColors.accent.withValues(alpha: 0.12),
+                                highlightColor: AppColors.accent.withValues(alpha: 0.05),
+                                onTap: () => onTap(realIndex),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                                  child: Row(
+                                    children: [
+                                      // 1. Z-Index Depth Badge
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.accent
+                                              : AppColors.surface,
+                                          borderRadius: AppRadius.br6,
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.accent
+                                                : AppColors.borderSubtle,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '$zIndexNum',
+                                            style: AppText.mono(
+                                              color: isSelected
+                                                  ? AppColors.accentOn
+                                                  : AppColors.inkMuted,
+                                            ).copyWith(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+
+                                      // 2. Type Icon Badge
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppColors.accent.withValues(alpha: 0.15)
+                                              : AppColors.surface,
+                                          borderRadius: AppRadius.br10,
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? AppColors.accent.withValues(alpha: 0.3)
+                                                : AppColors.borderSubtle,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            _iconForType(type),
+                                            size: 15,
+                                            color: isSelected
+                                                ? AppColors.accent
+                                                : isVisible
+                                                    ? AppColors.inkPrimary
+                                                    : AppColors.inkDisabled,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+
+                                      // 3. Label & Details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              _labelForLayer(layer),
+                                              style: AppText.labelLarge(
+                                                color: isVisible
+                                                    ? AppColors.inkPrimary
+                                                    : AppColors.inkDisabled,
+                                              ).copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _subtitleForLayer(layer),
+                                              style: AppText.bodySmall(
+                                                color: isSelected
+                                                    ? AppColors.accent
+                                                    : AppColors.inkMuted,
+                                              ).copyWith(fontSize: 10.5),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // 4. Micro-Actions Row
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Visibility Toggle
+                                          _LayerIconButton(
+                                            icon: isVisible ? LucideIcons.eye : LucideIcons.eyeOff,
+                                            isActive: !isVisible,
+                                            activeColor: AppColors.inkDisabled,
+                                            tooltip: isVisible ? 'Hide layer' : 'Show layer',
+                                            onTap: () => onToggleVisibility(realIndex),
+                                          ),
+                                          // Lock Toggle
+                                          _LayerIconButton(
+                                            icon: isLocked ? LucideIcons.lock : LucideIcons.unlock,
+                                            isActive: isLocked,
+                                            activeColor: AppColors.accent,
+                                            tooltip: isLocked ? 'Unlock layer' : 'Lock layer',
+                                            onTap: () => onToggleLock(realIndex),
+                                          ),
+                                          // Duplicate
+                                          _LayerIconButton(
+                                            icon: LucideIcons.copy,
+                                            tooltip: 'Duplicate layer',
+                                            onTap: () => onDuplicate(realIndex),
+                                          ),
+                                          // Delete
+                                          _LayerIconButton(
+                                            icon: LucideIcons.trash2,
+                                            isDestructive: true,
+                                            tooltip: 'Delete layer',
+                                            onTap: () => onDelete(realIndex),
+                                          ),
+                                          const SizedBox(width: 4),
+
+                                          // 5. Reorder Drag Grip Handle
+                                          ReorderableDragStartListener(
+                                            index: i,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.surface,
+                                                borderRadius: AppRadius.br6,
+                                                border: Border.all(color: AppColors.borderSubtle),
+                                              ),
+                                              child: const Icon(
+                                                LucideIcons.gripVertical,
+                                                size: 16,
+                                                color: AppColors.inkSecondary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      // ── Pinned Base Background Foundation Card ───────────────────
                       Container(
-                        width: 36,
-                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.accent : AppColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          _iconForType(type),
-                          size: 16,
-                          color: isSelected ? AppColors.accentOn : AppColors.inkMuted,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.s12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _labelForLayer(layer),
-                              style: AppText.labelLarge(color: isSelected ? AppColors.accent : AppColors.inkPrimary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              type.split('_').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' '),
-                              style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(fontSize: 10),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isDeletable)
-                        GestureDetector(
-                          onTap: () => onDelete(realIndex),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Icon(LucideIcons.trash2, size: 16, color: AppColors.destructive),
+                          color: AppColors.surfaceMuted.withValues(alpha: 0.3),
+                          borderRadius: AppRadius.br12,
+                          border: Border.all(
+                            color: AppColors.borderSubtle,
+                            style: BorderStyle.solid,
                           ),
                         ),
-                      ReorderableDragStartListener(
-                        index: i,
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Icon(LucideIcons.gripVertical, size: 20, color: AppColors.inkDisabled),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: AppRadius.br6,
+                                border: Border.all(color: AppColors.borderSubtle),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '#0',
+                                  style: AppText.mono(color: AppColors.inkDisabled).copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: AppRadius.br10,
+                                border: Border.all(color: AppColors.borderSubtle),
+                              ),
+                              child: const Center(
+                                child: Icon(LucideIcons.square, size: 15, color: AppColors.inkMuted),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Canvas Foundation (Background)',
+                                    style: AppText.labelLarge(color: AppColors.inkSecondary).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'CANVAS ROOT • ALWAYS AT BOTTOM',
+                                    style: AppText.mono(color: AppColors.inkDisabled).copyWith(fontSize: 9.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: AppRadius.br6,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(LucideIcons.lock, size: 12, color: AppColors.inkMuted),
+                                  const SizedBox(width: 4),
+                                  Text('Base', style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+/// Compact interactive icon button inside layer items for quick micro-actions.
+class _LayerIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isActive;
+  final bool isDestructive;
+  final Color? activeColor;
+  final String? tooltip;
+
+  const _LayerIconButton({
+    required this.icon,
+    required this.onTap,
+    this.isActive = false,
+    this.isDestructive = false,
+    this.activeColor,
+    this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive
+        ? AppColors.destructive
+        : isActive
+            ? (activeColor ?? AppColors.accent)
+            : AppColors.inkMuted;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: AppRadius.br6,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: Icon(
+            icon,
+            size: 15,
+            color: color,
+          ),
+        ),
+      ),
     );
   }
 }

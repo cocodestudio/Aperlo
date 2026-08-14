@@ -162,9 +162,14 @@ class DynamicTemplate extends StatelessWidget {
 
   Widget _buildLayer(int index, Map<String, dynamic> layer, double w, double h) {
     final type = layer['type'] as String? ?? '';
+    final isVisible = layer['visible'] as bool? ?? true;
+    if (!isVisible && type != 'background') {
+      return const SizedBox.shrink();
+    }
+    final isLocked = layer['locked'] as bool? ?? false;
     final isSelected = selectedLayerIndex == index;
-    final onTap = onTapLayer != null ? () => onTapLayer!(index) : null;
-    final onPanUpdate = (isSelected && onPanUpdateLayer != null) ? (Offset d) => onPanUpdateLayer!(index, d) : null;
+    final onTap = (!isLocked && onTapLayer != null) ? () => onTapLayer!(index) : null;
+    final onPanUpdate = (!isLocked && isSelected && onPanUpdateLayer != null) ? (Offset d) => onPanUpdateLayer!(index, d) : null;
     switch (type) {
       case 'background':
         return _Background(layer: layer, w: w, h: h);
