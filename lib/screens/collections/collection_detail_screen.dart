@@ -1,6 +1,5 @@
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -17,6 +16,7 @@ import '../export/export_screen.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/bottom_nav.dart';
+import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
 class CollectionDetailScreen extends ConsumerWidget {
@@ -123,79 +123,51 @@ class CollectionDetailScreen extends ConsumerWidget {
   }
 
   void _showCollectionMenu(BuildContext context, WidgetRef ref, String currentName) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Material(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: AppSpacing.s12),
-              Center(
-                child: Container(
-                  width: 40, 
-                  height: 4, 
-                  decoration: BoxDecoration(color: AppColors.borderDefault, borderRadius: AppRadius.brFull)
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.pencil),
-                title: Text('Rename', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx); 
-                  _showRenameDialog(context, ref, currentName);
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.download),
-                title: Text('Export all', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  final col = ref.read(collectionsProvider).valueOrNull?.where((c) => c.id == collectionId).firstOrNull;
-                  if (col == null || col.screenshotIds.isEmpty) {
-                    AppToast.show(context, message: 'Collection is empty', type: AppToastType.info);
-                    return;
-                  }
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (ctx) => ExportSheet(
-                      screenshotId: col.screenshotIds.first,
-                      screenshotIds: col.screenshotIds,
-                    ),
-                  );
-                },
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                child: Divider(),
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
-                title: Text('Delete collection', style: AppText.labelLarge(color: AppColors.destructive)),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _confirmDelete(context, ref);
-                },
-              ),
-              const SizedBox(height: AppSpacing.s16),
-            ],
-          ),
+    final col = ref.read(collectionsProvider).valueOrNull?.where((c) => c.id == collectionId).firstOrNull;
+    final count = col?.screenshotIds.length ?? 0;
+
+    AppOptionsModalSheet.show(
+      context,
+      title: currentName,
+      subtitle: '$count screenshot${count != 1 ? 's' : ''}',
+      headerIcon: LucideIcons.folder,
+      actions: [
+        AppOptionAction(
+          label: 'Rename collection',
+          description: 'Change collection title',
+          icon: LucideIcons.pencil,
+          onTap: () => _showRenameDialog(context, ref, currentName),
         ),
-      ),
+        AppOptionAction(
+          label: 'Export all screenshots',
+          description: 'Batch export at high resolution',
+          icon: LucideIcons.download,
+          badgeText: count > 0 ? '$count items' : null,
+          onTap: () {
+            if (col == null || col.screenshotIds.isEmpty) {
+              AppToast.show(context, message: 'Collection is empty', type: AppToastType.info);
+              return;
+            }
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => ExportSheet(
+                screenshotId: col.screenshotIds.first,
+                screenshotIds: col.screenshotIds,
+              ),
+            );
+          },
+        ),
+        AppOptionAction(
+          label: 'Delete collection',
+          description: 'Permanently remove collection and all its screenshots',
+          icon: LucideIcons.trash2,
+          isDestructive: true,
+          onTap: () => _confirmDelete(context, ref),
+        ),
+      ],
     );
   }
 
@@ -420,81 +392,54 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
 
   void _showContextMenu(BuildContext context) {
     final s = widget.screenshot;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Material(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: AppSpacing.s12),
-              Center(
-                child: Container(
-                  width: 40, 
-                  height: 4, 
-                  decoration: BoxDecoration(color: AppColors.borderDefault, borderRadius: AppRadius.brFull)
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.pencil),
-                title: Text('Rename', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _showRenameDialog(context);
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.download),
-                title: Text('Export', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (ctx) => ExportSheet(screenshotId: s.id),
-                  );
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.copy),
-                title: Text('Duplicate', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _duplicateScreenshot();
-                },
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                child: Divider(),
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
-                title: Text('Delete', style: AppText.labelLarge(color: AppColors.destructive)),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _confirmDelete(context);
-                },
-              ),
-              const SizedBox(height: AppSpacing.s16),
-            ],
-          ),
+
+    AppOptionsModalSheet.show(
+      context,
+      title: s.name,
+      subtitle: 'Screenshot item',
+      headerIcon: LucideIcons.image,
+      actions: [
+        AppOptionAction(
+          label: 'Edit in studio canvas',
+          description: 'Customize mockup, layers & text',
+          icon: LucideIcons.palette,
+          isPrimary: true,
+          onTap: () => context.push('/editor/${s.id}'),
         ),
-      ),
+        AppOptionAction(
+          label: 'Rename',
+          description: 'Change screenshot title',
+          icon: LucideIcons.pencil,
+          onTap: () => _showRenameDialog(context),
+        ),
+        AppOptionAction(
+          label: 'Export image',
+          description: 'Render and save to gallery / share',
+          icon: LucideIcons.download,
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => ExportSheet(screenshotId: s.id),
+            );
+          },
+        ),
+        AppOptionAction(
+          label: 'Duplicate',
+          description: 'Create an exact cloned copy',
+          icon: LucideIcons.copy,
+          onTap: _duplicateScreenshot,
+        ),
+        AppOptionAction(
+          label: 'Delete screenshot',
+          description: 'Permanently remove this screenshot',
+          icon: LucideIcons.trash2,
+          isDestructive: true,
+          onTap: () => _confirmDelete(context),
+        ),
+      ],
     );
   }
 

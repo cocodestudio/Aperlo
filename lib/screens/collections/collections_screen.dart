@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
@@ -19,6 +18,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/bottom_nav.dart';
+import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
 class CollectionsScreen extends ConsumerStatefulWidget {
@@ -376,98 +376,65 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
 
   void _showContextMenu(BuildContext context) {
     final c = widget.collection;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Material(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: AppSpacing.s12),
-              Center(
-                child: Container(
-                  width: 40, 
-                  height: 4, 
-                  decoration: BoxDecoration(color: AppColors.borderDefault, borderRadius: AppRadius.brFull)
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.folderOpen),
-                title: Text('Open', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  context.push('/collections/${c.id}');
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.pencil),
-                title: Text('Rename', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _showRenameDialog(context);
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.copy),
-                title: Text('Duplicate', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _duplicate();
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.download),
-                title: Text('Export all', style: AppText.labelLarge()),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  if (widget.collection.screenshotIds.isEmpty) {
-                    AppToast.show(context, message: 'Collection is empty', type: AppToastType.info);
-                    return;
-                  }
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    useSafeArea: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (ctx) => ExportSheet(
-                      screenshotId: widget.collection.screenshotIds.first,
-                      screenshotIds: widget.collection.screenshotIds,
-                    ),
-                  );
-                },
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                child: Divider(),
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-                leading: const Icon(LucideIcons.trash2, color: AppColors.destructive),
-                title: Text('Delete', style: AppText.labelLarge(color: AppColors.destructive)),
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  Navigator.pop(sheetCtx);
-                  _confirmDelete(context);
-                },
-              ),
-              const SizedBox(height: AppSpacing.s16),
-            ],
-          ),
+    final count = c.screenshotIds.length;
+    final color = c.color;
+
+    AppOptionsModalSheet.show(
+      context,
+      title: c.name,
+      subtitle: '$count screenshot${count != 1 ? 's' : ''}',
+      headerIcon: LucideIcons.folder,
+      headerColor: color,
+      actions: [
+        AppOptionAction(
+          label: 'Open collection',
+          description: 'View screenshots and templates',
+          icon: LucideIcons.folderOpen,
+          isPrimary: true,
+          onTap: () => context.push('/collections/${c.id}'),
         ),
-      ),
+        AppOptionAction(
+          label: 'Rename',
+          description: 'Change collection title',
+          icon: LucideIcons.pencil,
+          onTap: () => _showRenameDialog(context),
+        ),
+        AppOptionAction(
+          label: 'Duplicate',
+          description: 'Create an exact clone',
+          icon: LucideIcons.copy,
+          onTap: _duplicate,
+        ),
+        AppOptionAction(
+          label: 'Export all',
+          description: 'Export all screenshots at full resolution',
+          icon: LucideIcons.download,
+          badgeText: count > 0 ? '$count items' : null,
+          onTap: () {
+            if (widget.collection.screenshotIds.isEmpty) {
+              AppToast.show(context, message: 'Collection is empty', type: AppToastType.info);
+              return;
+            }
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => ExportSheet(
+                screenshotId: widget.collection.screenshotIds.first,
+                screenshotIds: widget.collection.screenshotIds,
+              ),
+            );
+          },
+        ),
+        AppOptionAction(
+          label: 'Delete collection',
+          description: 'Permanently delete this collection and its screenshots',
+          icon: LucideIcons.trash2,
+          isDestructive: true,
+          onTap: () => _confirmDelete(context),
+        ),
+      ],
     );
   }
 

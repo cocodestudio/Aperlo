@@ -535,79 +535,191 @@ class _CollectionPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-      clipBehavior: Clip.antiAlias,
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: AppSpacing.s12),
-            Center(
-              child: Container(
-                width: 40, 
-                height: 4, 
-                decoration: BoxDecoration(color: AppColors.borderDefault, borderRadius: AppRadius.brFull)
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+          boxShadow: AppShadows.float,
+          border: Border.all(color: AppColors.borderSubtle, width: 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Drag Handle Pill ─────────────────────────────────────────
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Add to collection', style: AppText.headline2()),
-                  if (onCreateNew != null)
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        onCreateNew!();
-                      },
-                      child: Row(
+
+              // ── Header Row ───────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentTint,
+                        borderRadius: AppRadius.br10,
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        LucideIcons.folderPlus,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(LucideIcons.plus, size: 16, color: AppColors.accent),
-                          const SizedBox(width: 4),
-                          Text('New', style: AppText.labelLarge(color: AppColors.accent)),
+                          Text('Add to collection', style: AppText.headline2().copyWith(fontSize: 17)),
+                          const SizedBox(height: 2),
+                          Text('Select destination collection', style: AppText.bodySmall(color: AppColors.inkMuted)),
                         ],
                       ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
-                itemCount: collections.length,
-                itemBuilder: (context, i) {
-                  final c = collections[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
-                      shape: RoundedRectangleBorder(borderRadius: AppRadius.br12),
-                      tileColor: AppColors.surfaceMuted,
-                      leading: CircleAvatar(
-                        backgroundColor: c.color.withValues(alpha: 0.15),
-                        radius: 20,
-                        child: Icon(LucideIcons.folderOpen, color: c.color, size: 20),
+                    if (onCreateNew != null)
+                      Material(
+                        color: AppColors.accentTint,
+                        borderRadius: AppRadius.brFull,
+                        child: InkWell(
+                          borderRadius: AppRadius.brFull,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            onCreateNew!();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(LucideIcons.plus, size: 14, color: AppColors.accent),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'New',
+                                  style: AppText.labelDefault(color: AppColors.accent).copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                      title: Text(c.name, style: AppText.labelLarge()),
-                      subtitle: Text('${c.screenshotCount} screenshots', style: AppText.bodySmall(color: AppColors.inkMuted)),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        Navigator.pop(context, c.id);
-                      },
-                    ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s16),
-          ],
+
+              const Divider(color: AppColors.borderSubtle, height: 1),
+
+              // ── Collections List ─────────────────────────────────────────
+              Flexible(
+                child: collections.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                        child: Center(
+                          child: Text(
+                            'No collections yet. Tap "+ New" above to create one.',
+                            style: AppText.bodyLarge(color: AppColors.inkMuted),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+                        itemCount: collections.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final c = collections[i];
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted.withValues(alpha: 0.45),
+                              borderRadius: AppRadius.br12,
+                              border: Border.all(color: AppColors.borderSubtle),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                splashColor: AppColors.accent.withValues(alpha: 0.12),
+                                highlightColor: AppColors.accent.withValues(alpha: 0.05),
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  Navigator.pop(context, c.id);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: c.color.withValues(alpha: 0.14),
+                                          borderRadius: AppRadius.br10,
+                                          border: Border.all(
+                                            color: c.color.withValues(alpha: 0.25),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Icon(LucideIcons.folderOpen, color: c.color, size: 18),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              c.name,
+                                              style: AppText.labelLarge().copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${c.screenshotCount} screenshot${c.screenshotCount != 1 ? 's' : ''}',
+                                              style: AppText.bodySmall(color: AppColors.inkMuted).copyWith(fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Icon(LucideIcons.chevronRight, size: 15, color: AppColors.inkDisabled),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
