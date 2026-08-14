@@ -47,14 +47,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
-      StatefulShellRoute(
+      StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
-        navigatorContainerBuilder: (context, navigationShell, children) {
-          return AnimatedBranchContainer(
-            currentIndex: navigationShell.currentIndex,
-            children: children,
-          );
-        },
         branches: [
           StatefulShellBranch(
             routes: [

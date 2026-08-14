@@ -74,101 +74,12 @@ class _AppShellState extends State<AppShell> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         extendBody: true,
-        body: SafeArea(
-          top: false,
-          bottom: true,
-          child: widget.navigationShell,
-        ),
+        body: widget.navigationShell,
         bottomNavigationBar: _BottomNav(
           activeIndex: widget.navigationShell.currentIndex,
           onTap: _onTabTapped,
         ),
       ),
-    );
-  }
-}
-
-class AnimatedBranchContainer extends StatefulWidget {
-  const AnimatedBranchContainer(
-      {super.key, required this.currentIndex, required this.children});
-  final int currentIndex;
-  final List<Widget> children;
-
-  @override
-  State<AnimatedBranchContainer> createState() =>
-      _AnimatedBranchContainerState();
-}
-
-class _AnimatedBranchContainerState extends State<AnimatedBranchContainer>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late int _currentIndex;
-  late int _previousIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.currentIndex;
-    _previousIndex = widget.currentIndex;
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 250))
-      ..value = 1.0;
-  }
-
-  @override
-  void didUpdateWidget(covariant AnimatedBranchContainer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.currentIndex != _currentIndex) {
-      _previousIndex = _currentIndex;
-      _currentIndex = widget.currentIndex;
-      _controller.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: List.generate(widget.children.length, (index) {
-        if (index == _currentIndex) {
-          // Slide in
-          final isMovingRight = _currentIndex > _previousIndex;
-          final offset = Tween<Offset>(
-            begin: Offset(isMovingRight ? 1.0 : -1.0, 0.0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-              parent: _controller, curve: Curves.easeOutCubic));
-
-          return SlideTransition(
-            position: offset,
-            child: widget.children[index],
-          );
-        } else if (index == _previousIndex && _controller.isAnimating) {
-          // Slide out
-          final isMovingRight = _currentIndex > _previousIndex;
-          final offset = Tween<Offset>(
-            begin: Offset.zero,
-            end: Offset(isMovingRight ? -1.0 : 1.0, 0.0),
-          ).animate(CurvedAnimation(
-              parent: _controller, curve: Curves.easeOutCubic));
-
-          return SlideTransition(
-            position: offset,
-            child: widget.children[index],
-          );
-        } else {
-          // Hidden
-          return Offstage(
-            offstage: true,
-            child: widget.children[index],
-          );
-        }
-      }),
     );
   }
 }
