@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -184,10 +183,9 @@ class _PermissionScreenState extends State<PermissionScreen>
     _navigateForward();
   }
 
-  void _navigateForward() {
-    final settingsBox = Hive.box('settings');
-    final hasSeenOnboarding =
-        settingsBox.get('hasSeenOnboarding', defaultValue: false) as bool;
+  Future<void> _navigateForward() async {
+    final hasSeenOnboarding = await StorageUtil.hasSeenOnboarding();
+    if (!mounted) return;
     if (hasSeenOnboarding) {
       context.go('/home');
     } else {

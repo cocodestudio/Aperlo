@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -148,7 +147,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _finishOnboarding() async {
-    await Hive.box('settings').put('hasSeenOnboarding', true);
+    await StorageUtil.setHasSeenOnboarding(true);
     if (!mounted) return;
     
     final granted = await StorageUtil.isPermissionGranted();

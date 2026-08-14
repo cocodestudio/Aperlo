@@ -1,14 +1,103 @@
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class StorageUtil {
+  static bool? _hasSeenOnboardingCache;
+
   /// Checks if storage permission is already granted without requesting.
   static Future<bool> isPermissionGranted() async {
     if (!Platform.isAndroid) return true;
     if (await Permission.manageExternalStorage.isGranted) return true;
     if (await Permission.storage.isGranted) return true;
     return false;
+  }
+
+  /// Returns whether the user has completed onboarding.
+  /// Checks memory cache, open Hive settings box, internal persistent marker, and public marker.
+  static Future<bool> hasSeenOnboarding() async {
+    if (_hasSeenOnboardingCache == true) return true;
+
+    if (Hive.isBoxOpen('settings')) {
+      final val = Hive.box('settings').get('hasSeenOnboarding', defaultValue: false);
+      if (val == true) {
+        _hasSeenOnboardingCache = true;
+        return true;
+      }
+    }
+
+    try {
+      // Check internal app documents directory marker
+      final internalDir = await getApplicationDocumentsDirectory();
+      final markerFile = File('${internalDir.path}/.onboarding_done');
+      if (await markerFile.exists()) {
+        _hasSeenOnboardingCache = true;
+        return true;
+      }
+
+      // Check public directory marker if available
+      final publicBase = await getPublicDirectoryPath(request: false);
+      if (publicBase != null) {
+        final publicMarker = File('$publicBase/.onboarding_done');
+        if (await publicMarker.exists()) {
+          _hasSeenOnboardingCache = true;
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
+  /// Synchronous check for route redirects
+  static bool hasSeenOnboardingSync() {
+    if (_hasSeenOnboardingCache == true) return true;
+    if (Hive.isBoxOpen('settings')) {
+      final val = Hive.box('settings').get('hasSeenOnboarding', defaultValue: false);
+      if (val == true) {
+        _hasSeenOnboardingCache = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Sets onboarding completed across all storage layers (Hive, internal marker, public marker)
+  static Future<void> setHasSeenOnboarding(bool value) async {
+    _hasSeenOnboardingCache = value;
+
+    if (Hive.isBoxOpen('settings')) {
+      await Hive.box('settings').put('hasSeenOnboarding', value);
+    }
+
+    try {
+      final internalDir = await getApplicationDocumentsDirectory();
+      final markerFile = File('${internalDir.path}/.onboarding_done');
+      if (value) {
+        if (!await markerFile.exists()) {
+          await markerFile.writeAsString('1');
+        }
+      } else {
+        if (await markerFile.exists()) {
+          await markerFile.delete();
+        }
+      }
+
+      final publicBase = await getPublicDirectoryPath(request: false);
+      if (publicBase != null) {
+        final publicMarker = File('$publicBase/.onboarding_done');
+        if (value) {
+          if (!await publicMarker.exists()) {
+            await publicMarker.writeAsString('1');
+          }
+        } else {
+          if (await publicMarker.exists()) {
+            await publicMarker.delete();
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   /// Requests necessary permissions and returns the public directory path
@@ -74,6 +163,15 @@ class StorageUtil {
   }
 
   static Future<void> initHiveWithPermissions({bool request = true}) async {
+    // Check if onboarding was already seen before re-init
+    final wasOnboardingSeen = await hasSeenOnboarding();
+
+    // Cache existing open box contents before closing if switching paths
+    Map<dynamic, dynamic>? cachedSettings;
+    if (Hive.isBoxOpen('settings')) {
+      cachedSettings = Map<dynamic, dynamic>.from(Hive.box('settings').toMap());
+    }
+
     final dbPath = await getDatabasePath(request: request);
 
     // If we are re-initializing (e.g. after granting permissions), we must close
@@ -86,7 +184,7 @@ class StorageUtil {
     if (dbPath != null) {
       Hive.init(dbPath);
     } else {
-      // Fallback if permissions denied permanently
+      // Fallback if permissions denied
       await Hive.initFlutter();
     }
 
@@ -94,6 +192,21 @@ class StorageUtil {
     await Hive.openBox('screenshots');
     final settingsBox = await Hive.openBox('settings');
     await Hive.openBox('template_discovery');
+
+    // Restore cached settings if new box doesn't have them
+    if (cachedSettings != null) {
+      for (final entry in cachedSettings.entries) {
+        if (!settingsBox.containsKey(entry.key)) {
+          await settingsBox.put(entry.key, entry.value);
+        }
+      }
+    }
+
+    // Ensure hasSeenOnboarding is strictly persisted in this box
+    if (wasOnboardingSeen) {
+      await settingsBox.put('hasSeenOnboarding', true);
+      _hasSeenOnboardingCache = true;
+    }
 
     // Record the first launch time of the app so we can compute template newness
     if (!settingsBox.containsKey('app_first_launch_time')) {

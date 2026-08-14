@@ -14,6 +14,7 @@ import '../../screens/editor/editor_screen.dart';
 import '../../screens/debug/crash_screen.dart';
 import '../../screens/permission/permission_screen.dart';
 import '../../widgets/bottom_nav.dart';
+import '../../utils/storage_util.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -31,8 +32,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/splash?next=${Uri.encodeComponent(loc)}';
       }
 
-      final settingsBox = Hive.box('settings');
-      final hasSeenOnboarding = settingsBox.get('hasSeenOnboarding', defaultValue: false);
+      final hasSeenOnboarding = StorageUtil.hasSeenOnboardingSync();
 
       if (loc == '/splash') return null; // Let splash decide when to move
       if (loc == '/onboarding') {
