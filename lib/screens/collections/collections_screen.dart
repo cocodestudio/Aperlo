@@ -17,7 +17,6 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
-import '../../widgets/bottom_nav.dart';
 import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
@@ -46,7 +45,7 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
     final collectionsAsync = ref.watch(collectionsProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : (screenWidth < 340 ? 1 : 2));
-    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 0.98);
+    final childAspectRatio = screenWidth < 340 ? 1.5 : 0.98;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -57,16 +56,13 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
       ),
       floatingActionButton: (collectionsAsync.valueOrNull ?? []).isEmpty
           ? null
-          : Padding(
-              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
-              child: FloatingActionButton(
-                onPressed: () => _showNewCollectionDialog(context),
-                shape: const CircleBorder(),
-                backgroundColor: AppColors.accent,
-                elevation: 4,
-                highlightElevation: 8,
-                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
-              ),
+          : FloatingActionButton(
+              onPressed: () => _showNewCollectionDialog(context),
+              shape: const CircleBorder(),
+              backgroundColor: AppColors.accent,
+              elevation: 4,
+              highlightElevation: 8,
+              child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
             ),
       body: Column(
         children: [
@@ -169,9 +165,6 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
                         ),
                       ),
                     ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: getFloatingBottomNavClearance(context)),
-                    ),
                   ],
                 );
               },
@@ -200,7 +193,7 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
 
     showDialog(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
@@ -439,7 +432,7 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
     final ctrl = TextEditingController(text: widget.collection.name);
     showDialog(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
@@ -501,7 +494,7 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),

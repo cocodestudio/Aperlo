@@ -329,7 +329,7 @@ class _ExportSheetState extends ConsumerState<ExportSheet> {
       if (mounted) {
         showDialog(
           context: context,
-          useRootNavigator: false,
+          useRootNavigator: true,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.surface,
             shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),

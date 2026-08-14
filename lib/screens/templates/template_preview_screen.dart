@@ -260,7 +260,7 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
     final ctrl = TextEditingController();
     return showDialog<String>(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),

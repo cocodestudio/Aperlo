@@ -16,7 +16,7 @@ import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
-import '../../widgets/bottom_nav.dart';
+
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : (screenWidth < 340 ? 1 : 2));
-    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 0.98);
+    final childAspectRatio = screenWidth < 340 ? 1.5 : 0.98;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -173,10 +173,6 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-
-            SliverToBoxAdapter(
-              child: SizedBox(height: getFloatingBottomNavClearance(context)),
-            ),
           ],
         ),
       ),
@@ -188,7 +184,7 @@ class HomeScreen extends ConsumerWidget {
 
     showDialog(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),

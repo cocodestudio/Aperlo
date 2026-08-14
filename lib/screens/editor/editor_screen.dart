@@ -928,7 +928,7 @@ class _EditorAppBar extends StatelessWidget {
     final ctrl = TextEditingController(text: screenshotName);
     showDialog(
       context: context,
-      useRootNavigator: false,
+      useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         title: Text('Rename screenshot', style: AppText.headline2()),
         content: TextField(

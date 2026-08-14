@@ -13,7 +13,7 @@ import '../../providers/app_providers.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
-import '../../widgets/bottom_nav.dart';
+
 
 
 const _categories = [
@@ -150,9 +150,6 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
                           ),
                         ),
                       ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: getFloatingBottomNavClearance(context)),
-                    ),
                   ],
                 );
               },
