@@ -39,7 +39,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   String _subheadlineFont = 'DM Sans';
   double _zoomLevel = 0.75;
   int? _selectedLayerIndex;
-  String? _activeSubPanel;
+  String? _activePropertyCategory;
   Timer? _saveDebouncer;
   late final TransformationController _transformCtrl;
   bool _isCanvasCentered = false;
@@ -70,6 +70,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _templateData = prev.templateData;
       _templateLayers = prev.layers;
       _selectedLayerIndex = null;
+      _activePropertyCategory = null;
     });
     _save();
   }
@@ -82,6 +83,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _templateData = next.templateData;
       _templateLayers = next.layers;
       _selectedLayerIndex = null;
+      _activePropertyCategory = null;
     });
     _save();
   }
@@ -148,22 +150,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       _isCanvasCentered = true;
       final size = MediaQuery.of(context).size;
       final padding = MediaQuery.of(context).padding;
-      
+
       final viewWidth = size.width;
       final viewHeight = size.height - 60 - 80 - padding.top - padding.bottom;
-      
+
       final scaledWidth = 390 * 0.75;
       final scaledHeight = 844 * 0.75;
-      
+
       final dx = (viewWidth - scaledWidth) / 2;
       final dy = (viewHeight - scaledHeight) / 2;
-      
+
       final mat = Matrix4.identity();
       // ignore: deprecated_member_use
       mat.translate(dx, dy);
       // ignore: deprecated_member_use
       mat.scale(0.75, 0.75, 1.0);
-      
+
       _transformCtrl.value = mat;
     }
   }
@@ -196,18 +198,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final boundaryKey = ref.read(activeCanvasKeyProvider);
       final boundary = boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
-      
+
       final image = await boundary.toImage(pixelRatio: 0.5);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
-      
+
       final bytes = byteData.buffer.asUint8List();
       final imgPath = await StorageUtil.getImagesPath();
       final file = File('$imgPath/${widget.screenshotId}.png');
       await file.writeAsBytes(bytes);
-      
+
       await FileImage(file).evict();
-      
+
       await ref.read(localDataServiceProvider)
           .saveScreenshotThumbnail(widget.screenshotId, file.path);
     } catch (e) {
@@ -221,12 +223,12 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
       if (picked == null || !mounted) return;
       _pushUndo();
-      
+
       final imgPath = await StorageUtil.getImagesPath();
       final ext = picked.path.split('.').last;
       final newPath = '$imgPath/${widget.screenshotId}_${index}_imported.$ext';
       await File(picked.path).copy(newPath);
-      
+
       setState(() => _templateLayers[index]['screenshotPath'] = newPath);
       _save();
     } catch (e) {
@@ -237,10 +239,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   void _onTapLayer(int index) {
     final type = _templateLayers[index]['type'] as String? ?? '';
     if (type == 'background') return;
-    
+
     setState(() {
       _selectedLayerIndex = index;
-      _activeSubPanel = null;
+      _activePropertyCategory = null;
     });
   }
 
@@ -249,7 +251,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (type == 'phone') {
       setState(() {
         _selectedLayerIndex = index;
-        _activeSubPanel = null;
+        _activePropertyCategory = null;
       });
     }
   }
@@ -259,6 +261,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     setState(() {
       _templateLayers.removeAt(index);
       _selectedLayerIndex = null;
+      _activePropertyCategory = null;
     });
     _save();
   }
@@ -269,6 +272,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final item = _templateLayers.removeAt(oldIndex);
       _templateLayers.insert(newIndex, item);
       _selectedLayerIndex = null;
+      _activePropertyCategory = null;
     });
     _save();
   }
@@ -308,13 +312,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   void _handlePanUpdateLayer(int index, Offset delta) {
     if (_selectedLayerIndex != index) return;
-    
+
     final zoomScale = _transformCtrl.value.getMaxScaleOnAxis();
     final dx = (delta.dx / zoomScale) / 390.0;
     final dy = (delta.dy / zoomScale) / 844.0;
 
     final layer = Map<String, dynamic>.from(_templateLayers[index]);
-    
+
     if (layer.containsKey('cx')) {
       layer['cx'] = (layer['cx'] as num? ?? 0.5) + dx;
     } else {
@@ -325,7 +329,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         layer['x'] = (layer['x'] as num? ?? 0.0) + dx;
       }
     }
-    
+
     if (layer.containsKey('cy')) {
       layer['cy'] = (layer['cy'] as num? ?? 0.5) + dy;
     } else {
@@ -414,14 +418,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bgIndex = _templateLayers.indexWhere((l) => l['type'] == 'background');
+    final activeLayerIndex = _activePropertyCategory == 'background' 
+        ? (bgIndex != -1 ? bgIndex : null) 
+        : _selectedLayerIndex;
+    final selectedLayer = (activeLayerIndex != null && activeLayerIndex >= 0 && activeLayerIndex < _templateLayers.length)
+        ? _templateLayers[activeLayerIndex]
+        : null;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        
-        if (_activeSubPanel != null || _selectedLayerIndex != null) {
+
+        if (_activePropertyCategory != null || _selectedLayerIndex != null) {
           setState(() {
-            _activeSubPanel = null;
+            _activePropertyCategory = null;
             _selectedLayerIndex = null;
           });
           return;
@@ -469,13 +481,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     Positioned.fill(
                       child: ColoredBox(
                         color: AppColors.background,
-                        child: _isLoading 
-                            ? const _PremiumLoadingState() 
+                        child: _isLoading
+                            ? const _PremiumLoadingState()
                             : GestureDetector(
                             onTap: () {
                               setState(() {
                                 _selectedLayerIndex = null;
-                                _activeSubPanel = null;
+                                _activePropertyCategory = null;
                               });
                               ref.read(editorProvider.notifier).selectElement(null);
                             },
@@ -533,7 +545,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                             ),
                           ),
                     ),
-                    
+
                     if (_showZoomChip)
                       Positioned(
                         left: 16,
@@ -553,7 +565,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           ),
                         ),
                       ),
-                      
+
                     if (_selectedLayerIndex != null)
                       Positioned(
                         top: 16,
@@ -578,11 +590,11 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                                 GestureDetector(
                                   onTap: () => setState(() {
                                     _selectedLayerIndex = null;
-                                    _activeSubPanel = null;
+                                    _activePropertyCategory = null;
                                   }),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       color: AppColors.surfaceMuted,
                                       shape: BoxShape.circle,
                                     ),
@@ -592,6 +604,91 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                               ],
                             ),
                           ),
+                        ),
+                      ),
+
+                    // Floating Live Compact Property Dock
+                    if (_activePropertyCategory != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 8,
+                        child: _FloatingPropertyDock(
+                          category: _activePropertyCategory!,
+                          selectedLayerIndex: activeLayerIndex,
+                          layer: selectedLayer,
+                          templateData: _templateData,
+                          onClose: () => setState(() => _activePropertyCategory = null),
+                          onUpdateLayer: (updatedLayer) {
+                            final idxToUpdate = activeLayerIndex;
+                            if (idxToUpdate != null && idxToUpdate >= 0 && idxToUpdate < _templateLayers.length) {
+                              _pushUndo();
+                              setState(() {
+                                _templateLayers[idxToUpdate] = updatedLayer;
+                              });
+                              _debouncedSave();
+                            }
+                          },
+                          onUpdateTemplateData: (updatedData) {
+                            setState(() {
+                              _templateData = updatedData;
+                            });
+                            _debouncedSave();
+                          },
+                          onPickImage: () {
+                            if (_selectedLayerIndex != null) {
+                              _pickScreenshotImage(_selectedLayerIndex!);
+                            }
+                          },
+                          onSnapLeft: (l) => _snapLeft(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onSnapRight: (l) => _snapRight(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onSnapTop: (l) => _snapTop(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onSnapBottom: (l) => _snapBottom(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onSnapCenterH: (l) => _snapCenterH(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onSnapCenterV: (l) => _snapCenterV(l, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
+                          onNudge: (l, dx, dy) => _nudgeLayer(l, dx, dy, (u) {
+                            if (_selectedLayerIndex != null) {
+                              _pushUndo();
+                              setState(() => _templateLayers[_selectedLayerIndex!] = u);
+                              _debouncedSave();
+                            }
+                          }),
                         ),
                       ),
                   ],
@@ -608,216 +705,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     );
   }
 
-  void _showSubPanel(String panel) {
-    if (_selectedLayerIndex == null) return;
-    final index = _selectedLayerIndex!;
-    final layer = Map<String, dynamic>.from(_templateLayers[index]);
 
-    void updateLayer(Map<String, dynamic> newLayer) {
-      _pushUndo();
-      setState(() { _templateLayers[index] = newLayer; });
-      _debouncedSave();
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            void sheetUpdateLayer(Map<String, dynamic> newLayer) {
-              updateLayer(newLayer);
-              setSheetState(() {});
-            }
-
-            final String type = layer['type'] as String? ?? '';
-            List<PropertySheetSection> sections = [];
-
-            if (type == 'text' || type == 'badge' || type == 'feature_row') {
-              final rawContent = layer['content'] as String? ?? '';
-              final isHeadline = rawContent.contains('{headline}');
-              final isSubheadline = rawContent.contains('{subheadline}');
-              
-              final initialText = isHeadline ? _templateData.headline : isSubheadline ? _templateData.subheadline : rawContent;
-                      
-              sections = [
-                PropertySheetSection(
-                  title: 'Content',
-                  content: buildSection('Content', [
-                    _LayerTextField(
-                      key: ValueKey('text_$_selectedLayerIndex'),
-                      label: 'Text',
-                      initialText: initialText,
-                      onChanged: (val) {
-                        if (isHeadline) {
-                          setState(() { _templateData = TemplateData(headline: val, subheadline: _templateData.subheadline, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
-                          _debouncedSave();
-                        } else if (isSubheadline) {
-                          setState(() { _templateData = TemplateData(headline: _templateData.headline, subheadline: val, headlineColor: _templateData.headlineColor, subheadlineColor: _templateData.subheadlineColor); });
-                          _debouncedSave();
-                        } else {
-                          layer['content'] = val; sheetUpdateLayer(layer);
-                        }
-                      },
-                    ),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Style',
-                  content: buildSection('Appearance', [
-                    StyledInputNumeric(label: 'Font Size', value: ((layer['font_size'] ?? 0.08) as num).toDouble() * 390.0, onChanged: (v) { layer['font_size'] = v / 390.0; sheetUpdateLayer(layer); }),
-                    PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Layout',
-                  content: buildSection('Layout', [
-                    TextAlignmentControl(
-                      value: layer['text_align'] as String? ?? layer['align'] as String? ?? 'left',
-                      onChanged: (v) {
-                        layer['text_align'] = v;
-                        layer['align'] = v;
-                        sheetUpdateLayer(layer);
-                      },
-                    ),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Position',
-                  content: buildSection('Position', [
-                    PositionPresets(
-                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                    ),
-                    StyledPositionNudge(
-                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                    ),
-                  ]),
-                ),
-              ];
-            } else if (type == 'image' || type == 'phone') {
-              sections = [
-                if (type == 'phone')
-                  PropertySheetSection(
-                    title: 'Style',
-                    content: buildSection('Mockup & Source', [
-                      StyledActionTile(label: 'Pick Image', icon: LucideIcons.image, onTap: () {
-                        Navigator.pop(ctx);
-                        if (_selectedLayerIndex != null) _pickScreenshotImage(_selectedLayerIndex!);
-                      }),
-                      MockupStyleSelector(
-                        value: layer['style'] as String? ?? 'dynamic_island',
-                        onChanged: (v) { layer['style'] = v; sheetUpdateLayer(layer); },
-                      ),
-                    ]),
-                  ),
-                PropertySheetSection(
-                  title: 'Transform',
-                  content: buildSection('Transform', [
-                    PropertySlider(label: 'Scale', value: (layer['scale'] ?? 1.0).toDouble(), min: 0.1, max: 3.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['scale'] = v; sheetUpdateLayer(layer); }),
-                    if (type == 'phone')
-                      PropertySlider(label: 'Mockup Height', value: (layer['aspect_ratio'] ?? (19.5 / 9)).toDouble(), min: 1.0, max: 3.0, valueFormatter: (v) => '${v.toStringAsFixed(2)}x', onChanged: (v) { layer['aspect_ratio'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Z-Axis Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'X-Axis 3D Tilt', value: (layer['rotation_x'] ?? 0.0).toDouble(), min: -60.0, max: 60.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation_x'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Y-Axis 3D Turn', value: (layer['rotation_y'] ?? 0.0).toDouble(), min: -60.0, max: 60.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation_y'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Position',
-                  content: buildSection('Position', [
-                    PositionPresets(
-                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                    ),
-                    StyledPositionNudge(
-                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                    ),
-                  ]),
-                ),
-              ];
-            } else if (type == 'shape' || type == 'accent_bar' || type == 'divider' || type == 'frosted_panel') {
-              sections = [
-                PropertySheetSection(
-                  title: 'Style',
-                  content: buildSection('Appearance', [
-                    PropertyColorPicker(label: 'Color', hexColor: layer['color'] ?? '#1A6B4A', onChanged: (v) { layer['color'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Opacity', value: (layer['opacity'] ?? 1.0).toDouble(), min: 0.0, max: 1.0, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['opacity'] = v; sheetUpdateLayer(layer); }),
-                    if (type == 'shape' || type == 'frosted_panel') PropertySlider(label: 'Border Radius', value: (layer['border_radius'] ?? 12.0).toDouble(), min: 0.0, max: 100.0, onChanged: (v) { layer['border_radius'] = v; sheetUpdateLayer(layer); }),
-                    if (type == 'frosted_panel') PropertySlider(label: 'Blur Amount', value: (layer['blur'] ?? 10.0).toDouble(), min: 0.0, max: 40.0, valueFormatter: (v) => '${v.toInt()} px', onChanged: (v) { layer['blur'] = v; sheetUpdateLayer(layer); }),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Transform',
-                  content: buildSection('Transform', [
-                    PropertySlider(label: 'Width', value: (layer['width'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['width'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Height', value: (layer['height'] ?? 0.8).toDouble(), min: 0.05, max: 1.5, valueFormatter: (v) => '${(v * 100).toInt()}%', onChanged: (v) { layer['height'] = v; sheetUpdateLayer(layer); }),
-                    PropertySlider(label: 'Rotation', value: (layer['rotation'] ?? 0.0).toDouble(), min: -180.0, max: 180.0, valueFormatter: (v) => '${v.toInt()}°', onChanged: (v) { layer['rotation'] = v; sheetUpdateLayer(layer); }),
-                  ]),
-                ),
-                PropertySheetSection(
-                  title: 'Position',
-                  content: buildSection('Position', [
-                    PositionPresets(
-                      onSnapLeft: () => _snapLeft(layer, sheetUpdateLayer),
-                      onSnapRight: () => _snapRight(layer, sheetUpdateLayer),
-                      onSnapTop: () => _snapTop(layer, sheetUpdateLayer),
-                      onSnapBottom: () => _snapBottom(layer, sheetUpdateLayer),
-                      onSnapCenterH: () => _snapCenterH(layer, sheetUpdateLayer),
-                      onSnapCenterV: () => _snapCenterV(layer, sheetUpdateLayer),
-                    ),
-                    StyledPositionNudge(
-                      onUp: () => _nudgeLayer(layer, 0, -0.01, sheetUpdateLayer),
-                      onDown: () => _nudgeLayer(layer, 0, 0.01, sheetUpdateLayer),
-                      onLeft: () => _nudgeLayer(layer, -0.01, 0, sheetUpdateLayer),
-                      onRight: () => _nudgeLayer(layer, 0.01, 0, sheetUpdateLayer),
-                    ),
-                  ]),
-                ),
-              ];
-            }
-
-            return PropertySheetLayout(sections: sections);
-          }
-        )
-      )
-    );
-  }
-
-  void _showBackgroundPanel(BuildContext context) {
-    int bgIndex = _templateLayers.indexWhere((l) => l['type'] == 'background');
-    if (bgIndex == -1) return;
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => LayerBackgroundEditSheet(
-        layer: _templateLayers[bgIndex],
-        onSave: (updated) {
-          _pushUndo();
-          setState(() => _templateLayers[bgIndex] = updated);
-          _save();
-        },
-      ),
-    );
-  }
 
   List<Widget> _buildContextualOptions() {
     if (_selectedLayerIndex == null) {
@@ -825,8 +713,13 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _ToolButton(
           icon: LucideIcons.palette,
           label: 'Background',
-          isActive: false,
-          onTap: () => _showBackgroundPanel(context),
+          isActive: _activePropertyCategory == 'background',
+          onTap: () {
+            setState(() {
+              _activePropertyCategory =
+                  _activePropertyCategory == 'background' ? null : 'background';
+            });
+          },
         ),
       ];
     }
@@ -835,13 +728,38 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final type = layer['type'] as String? ?? '';
     final List<Widget> options = [];
 
-    options.add(_ToolButton(icon: LucideIcons.slidersHorizontal, label: 'Properties', isActive: false, onTap: () => _showSubPanel('edit')));
+    void toggleCategory(String cat) {
+      setState(() {
+        _activePropertyCategory = _activePropertyCategory == cat ? null : cat;
+      });
+    }
+
+    if (type == 'text' || type == 'badge' || type == 'feature_row') {
+      options.add(_ToolButton(icon: LucideIcons.type, label: 'Content', isActive: _activePropertyCategory == 'content', onTap: () => toggleCategory('content')));
+      options.add(_ToolButton(icon: LucideIcons.palette, label: 'Style', isActive: _activePropertyCategory == 'style', onTap: () => toggleCategory('style')));
+      options.add(_ToolButton(icon: LucideIcons.alignCenter, label: 'Align', isActive: _activePropertyCategory == 'align', onTap: () => toggleCategory('align')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+    } else if (type == 'phone' || type == 'image') {
+      if (type == 'phone') {
+        options.add(_ToolButton(icon: LucideIcons.smartphone, label: 'Mockup', isActive: _activePropertyCategory == 'mockup_style', onTap: () => toggleCategory('mockup_style')));
+      }
+      options.add(_ToolButton(icon: LucideIcons.box, label: '3D & Scale', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+    } else if (type == 'shape' || type == 'accent_bar' || type == 'divider' || type == 'frosted_panel') {
+      options.add(_ToolButton(icon: LucideIcons.palette, label: 'Appearance', isActive: _activePropertyCategory == 'appearance', onTap: () => toggleCategory('appearance')));
+      options.add(_ToolButton(icon: LucideIcons.scaling, label: 'Size', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+    } else {
+      options.add(_ToolButton(icon: LucideIcons.slidersHorizontal, label: 'Style', isActive: _activePropertyCategory == 'style', onTap: () => toggleCategory('style')));
+    }
+
     if (type != 'background') {
       options.add(_ToolButton(icon: LucideIcons.trash2, label: 'Delete', isActive: false, onTap: () => _deleteLayer(_selectedLayerIndex!)));
     }
 
     return options;
   }
+
 }
 
 class _EditorSnapshot {
@@ -1120,37 +1038,513 @@ class _EditorBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.s16),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.brFull,
-        boxShadow: AppShadows.card,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (options.isNotEmpty) ...[
-            ...options,
-            Container(
-              width: 1,
-              height: 32,
-              color: AppColors.borderSubtle,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        margin: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom > 0 ? 8 : 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.brFull,
+          boxShadow: AppShadows.card,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: options,
+                ),
+              ),
+            ),
+            if (options.isNotEmpty)
+              Container(
+                width: 1,
+                height: 32,
+                color: AppColors.borderSubtle,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+              ),
+            _ToolButton(
+              icon: LucideIcons.layers,
+              label: 'Layers',
+              isActive: false,
+              onTap: onOpenLayers,
             ),
           ],
-          _ToolButton(
-            icon: LucideIcons.layers,
-            label: 'Layers',
-            isActive: false,
-            onTap: onOpenLayers,
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingPropertyDock extends StatelessWidget {
+  const _FloatingPropertyDock({
+    required this.category,
+    required this.selectedLayerIndex,
+    required this.layer,
+    required this.templateData,
+    required this.onClose,
+    required this.onUpdateLayer,
+    required this.onUpdateTemplateData,
+    required this.onPickImage,
+    required this.onSnapLeft,
+    required this.onSnapRight,
+    required this.onSnapTop,
+    required this.onSnapBottom,
+    required this.onSnapCenterH,
+    required this.onSnapCenterV,
+    required this.onNudge,
+  });
+
+  final String category;
+  final int? selectedLayerIndex;
+  final Map<String, dynamic>? layer;
+  final TemplateData templateData;
+  final VoidCallback onClose;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+  final ValueChanged<TemplateData> onUpdateTemplateData;
+  final VoidCallback onPickImage;
+  final ValueChanged<Map<String, dynamic>> onSnapLeft, onSnapRight, onSnapTop, onSnapBottom, onSnapCenterH, onSnapCenterV;
+  final void Function(Map<String, dynamic> layer, double dx, double dy) onNudge;
+
+  String _titleForCategory() {
+    switch (category) {
+      case 'content': return 'Text Content';
+      case 'style': return 'Text Style';
+      case 'align': return 'Alignment';
+      case 'mockup_style': return 'Mockup & Source';
+      case 'transform': return '3D & Dimensions';
+      case 'appearance': return 'Appearance';
+      case 'position': return 'Position & Alignment';
+      case 'background': return 'Background Style';
+      default: return 'Properties';
+    }
+  }
+
+  Widget _buildContent(BuildContext context) {
+    if (layer == null) return const SizedBox.shrink();
+    final l = Map<String, dynamic>.from(layer!);
+    final type = l['type'] as String? ?? '';
+
+    switch (category) {
+      case 'content':
+        final rawContent = l['content'] as String? ?? '';
+        final isHeadline = rawContent.contains('{headline}');
+        final isSubheadline = rawContent.contains('{subheadline}');
+        final initialText = isHeadline
+            ? templateData.headline
+            : isSubheadline
+                ? templateData.subheadline
+                : rawContent;
+        return _LayerTextField(
+          key: ValueKey('text_$selectedLayerIndex'),
+          label: 'Text',
+          initialText: initialText,
+          onChanged: (val) {
+            if (isHeadline) {
+              onUpdateTemplateData(TemplateData(
+                headline: val,
+                subheadline: templateData.subheadline,
+                headlineColor: templateData.headlineColor,
+                subheadlineColor: templateData.subheadlineColor,
+              ));
+            } else if (isSubheadline) {
+              onUpdateTemplateData(TemplateData(
+                headline: templateData.headline,
+                subheadline: val,
+                headlineColor: templateData.headlineColor,
+                subheadlineColor: templateData.subheadlineColor,
+              ));
+            } else {
+              l['content'] = val;
+              onUpdateLayer(l);
+            }
+          },
+        );
+
+      case 'style':
+        return Column(
+          children: [
+            StyledInputNumeric(
+              label: 'Font Size',
+              value: ((l['font_size'] ?? 0.08) as num).toDouble() * 390.0,
+              onChanged: (v) {
+                l['font_size'] = v / 390.0;
+                onUpdateLayer(l);
+              },
+            ),
+            const SizedBox(height: 12),
+            PropertyColorPicker(
+              label: 'Text Color',
+              hexColor: l['color'] ?? '#1A6B4A',
+              onChanged: (v) {
+                l['color'] = v;
+                onUpdateLayer(l);
+              },
+            ),
+          ],
+        );
+
+      case 'align':
+        return TextAlignmentControl(
+          value: l['text_align'] as String? ?? l['align'] as String? ?? 'left',
+          onChanged: (v) {
+            l['text_align'] = v;
+            l['align'] = v;
+            onUpdateLayer(l);
+          },
+        );
+
+      case 'mockup_style':
+        return Column(
+          children: [
+            StyledActionTile(
+              label: 'Pick Image',
+              icon: LucideIcons.image,
+              onTap: onPickImage,
+            ),
+            const SizedBox(height: 12),
+            MockupStyleSelector(
+              value: l['style'] as String? ?? 'dynamic_island',
+              onChanged: (v) {
+                l['style'] = v;
+                onUpdateLayer(l);
+              },
+            ),
+          ],
+        );
+
+      case 'transform':
+        if (type == 'phone' || type == 'image') {
+          return Column(
+            children: [
+              PropertySlider(
+                label: 'Scale',
+                value: (l['scale'] ?? 1.0).toDouble(),
+                min: 0.1,
+                max: 3.0,
+                valueFormatter: (v) => '${(v * 100).toInt()}%',
+                onChanged: (v) { l['scale'] = v; onUpdateLayer(l); },
+              ),
+              if (type == 'phone')
+                PropertySlider(
+                  label: 'Mockup Height',
+                  value: (l['aspect_ratio'] ?? (19.5 / 9)).toDouble(),
+                  min: 1.0,
+                  max: 3.0,
+                  valueFormatter: (v) => '${v.toStringAsFixed(2)}x',
+                  onChanged: (v) { l['aspect_ratio'] = v; onUpdateLayer(l); },
+                ),
+              PropertySlider(
+                label: 'Z-Axis Rotation',
+                value: (l['rotation'] ?? 0.0).toDouble(),
+                min: -180.0,
+                max: 180.0,
+                valueFormatter: (v) => '${v.toInt()}°',
+                onChanged: (v) { l['rotation'] = v; onUpdateLayer(l); },
+              ),
+              PropertySlider(
+                label: 'X-Axis 3D Tilt',
+                value: (l['rotation_x'] ?? 0.0).toDouble(),
+                min: -60.0,
+                max: 60.0,
+                valueFormatter: (v) => '${v.toInt()}°',
+                onChanged: (v) { l['rotation_x'] = v; onUpdateLayer(l); },
+              ),
+              PropertySlider(
+                label: 'Y-Axis 3D Turn',
+                value: (l['rotation_y'] ?? 0.0).toDouble(),
+                min: -60.0,
+                max: 60.0,
+                valueFormatter: (v) => '${v.toInt()}°',
+                onChanged: (v) { l['rotation_y'] = v; onUpdateLayer(l); },
+              ),
+              PropertySlider(
+                label: 'Opacity',
+                value: (l['opacity'] ?? 1.0).toDouble(),
+                min: 0.0,
+                max: 1.0,
+                valueFormatter: (v) => '${(v * 100).toInt()}%',
+                onChanged: (v) { l['opacity'] = v; onUpdateLayer(l); },
+              ),
+            ],
+          );
+        } else {
+          return Column(
+            children: [
+              PropertySlider(
+                label: 'Width',
+                value: (l['width'] ?? 0.8).toDouble(),
+                min: 0.05,
+                max: 1.5,
+                valueFormatter: (v) => '${(v * 100).toInt()}%',
+                onChanged: (v) { l['width'] = v; onUpdateLayer(l); },
+              ),
+              PropertySlider(
+                label: 'Height',
+                value: (l['height'] ?? 0.8).toDouble(),
+                min: 0.05,
+                max: 1.5,
+                valueFormatter: (v) => '${(v * 100).toInt()}%',
+                onChanged: (v) { l['height'] = v; onUpdateLayer(l); },
+              ),
+              PropertySlider(
+                label: 'Rotation',
+                value: (l['rotation'] ?? 0.0).toDouble(),
+                min: -180.0,
+                max: 180.0,
+                valueFormatter: (v) => '${v.toInt()}°',
+                onChanged: (v) { l['rotation'] = v; onUpdateLayer(l); },
+              ),
+            ],
+          );
+        }
+
+      case 'appearance':
+        return Column(
+          children: [
+            PropertyColorPicker(
+              label: 'Color',
+              hexColor: l['color'] ?? '#1A6B4A',
+              onChanged: (v) { l['color'] = v; onUpdateLayer(l); },
+            ),
+            const SizedBox(height: 12),
+            PropertySlider(
+              label: 'Opacity',
+              value: (l['opacity'] ?? 1.0).toDouble(),
+              min: 0.0,
+              max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) { l['opacity'] = v; onUpdateLayer(l); },
+            ),
+            if (type == 'shape' || type == 'frosted_panel')
+              PropertySlider(
+                label: 'Border Radius',
+                value: (l['border_radius'] ?? 12.0).toDouble(),
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) { l['border_radius'] = v; onUpdateLayer(l); },
+              ),
+            if (type == 'frosted_panel')
+              PropertySlider(
+                label: 'Blur Amount',
+                value: (l['blur'] ?? 10.0).toDouble(),
+                min: 0.0,
+                max: 40.0,
+                valueFormatter: (v) => '${v.toInt()} px',
+                onChanged: (v) { l['blur'] = v; onUpdateLayer(l); },
+              ),
+          ],
+        );
+
+      case 'position':
+        return Column(
+          children: [
+            PositionPresets(
+              onSnapLeft: () => onSnapLeft(l),
+              onSnapRight: () => onSnapRight(l),
+              onSnapTop: () => onSnapTop(l),
+              onSnapBottom: () => onSnapBottom(l),
+              onSnapCenterH: () => onSnapCenterH(l),
+              onSnapCenterV: () => onSnapCenterV(l),
+            ),
+            const SizedBox(height: 16),
+            StyledPositionNudge(
+              onUp: () => onNudge(l, 0, -0.01),
+              onDown: () => onNudge(l, 0, 0.01),
+              onLeft: () => onNudge(l, -0.01, 0),
+              onRight: () => onNudge(l, 0.01, 0),
+            ),
+          ],
+        );
+
+      case 'background':
+        return _BackgroundDockControlView(
+          layer: l,
+          onUpdateLayer: onUpdateLayer,
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = (MediaQuery.of(context).size.height * 0.45).clamp(220.0, 360.0);
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: 520),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.96),
+        borderRadius: AppRadius.br20,
+        border: Border.all(color: AppColors.borderSubtle, width: 1),
+        boxShadow: AppShadows.float,
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                _titleForCategory().toUpperCase(),
+                style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              GestureDetector(
+                onTap: onClose,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkPrimary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(color: AppColors.borderSubtle, thickness: 1, height: 1),
+          const SizedBox(height: 8),
+          Flexible(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: _buildContent(context),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+class _BackgroundDockControlView extends StatefulWidget {
+  const _BackgroundDockControlView({
+    required this.layer,
+    required this.onUpdateLayer,
+  });
+
+  final Map<String, dynamic> layer;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+
+  @override
+  State<_BackgroundDockControlView> createState() => _BackgroundDockControlViewState();
+}
+
+class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> {
+  int _tabIndex = 0; // 0: Solid, 1: Gradient, 2: Split
+
+  @override
+  Widget build(BuildContext context) {
+    final l = Map<String, dynamic>.from(widget.layer);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TogglePillGroup(
+          options: const ['Solid', 'Gradient', 'Split'],
+          selectedValue: _tabIndex == 0 ? 'Solid' : (_tabIndex == 1 ? 'Gradient' : 'Split'),
+          onChanged: (val) {
+            setState(() {
+              if (val == 'Solid') {
+                _tabIndex = 0;
+              } else if (val == 'Gradient') {
+                _tabIndex = 1;
+              } else {
+                _tabIndex = 2;
+              }
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        if (_tabIndex == 0) ...[
+          PropertyColorPicker(
+            label: 'Solid Color',
+            hexColor: l['color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['color'] = c;
+              l.remove('gradient');
+              l.remove('split_at');
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else if (_tabIndex == 1) ...[
+          PropertyColorPicker(
+            label: 'Start Color',
+            hexColor: (l['gradient'] as List?)?[0] as String? ?? '#0082FF',
+            onChanged: (c) {
+              if (l['gradient'] == null) l['gradient'] = ['#0082FF', '#0040A3'];
+              l['gradient'][0] = c;
+              l.remove('color');
+              l.remove('split_at');
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'End Color',
+            hexColor: (l['gradient'] as List?)?[1] as String? ?? '#0040A3',
+            onChanged: (c) {
+              if (l['gradient'] == null) l['gradient'] = ['#0082FF', '#0040A3'];
+              l['gradient'][1] = c;
+              l.remove('color');
+              l.remove('split_at');
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else ...[
+          PropertyColorPicker(
+            label: 'Top Color',
+            hexColor: l['top_color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['top_color'] = c;
+              if (l['split_at'] == null) l['split_at'] = 0.5;
+              l.remove('color');
+              l.remove('gradient');
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'Bottom Color',
+            hexColor: l['bottom_color'] as String? ?? '#F5F7F5',
+            onChanged: (c) {
+              l['bottom_color'] = c;
+              if (l['split_at'] == null) l['split_at'] = 0.5;
+              l.remove('color');
+              l.remove('gradient');
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Split Ratio',
+            value: (l['split_at'] as num?)?.toDouble() ?? 0.5,
+            min: 0.1,
+            max: 0.9,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['split_at'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 
 class _ToolButton extends StatelessWidget {
   const _ToolButton(
@@ -1165,9 +1559,16 @@ class _ToolButton extends StatelessWidget {
     final color = isActive ? AppColors.accent : AppColors.inkMuted;
     return Material(
       color: isActive ? AppColors.accentTint : Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: AppRadius.brFull,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.brFull,
+        splashColor: isActive
+            ? Colors.transparent
+            : AppColors.accent.withValues(alpha: 0.14),
+        highlightColor: isActive
+            ? Colors.transparent
+            : AppColors.accent.withValues(alpha: 0.06),
         onTap: () {
           HapticFeedback.lightImpact();
           onTap();
@@ -1259,7 +1660,13 @@ class _LayersPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reversed = layers.asMap().entries.toList().reversed.toList();
+    final reversed = layers
+        .asMap()
+        .entries
+        .where((e) => e.value['type'] != 'background')
+        .toList()
+        .reversed
+        .toList();
 
     return PropertySheetLayout(
       children: [
@@ -1267,7 +1674,7 @@ class _LayersPanel extends StatelessWidget {
           children: [
             Text('Layers', style: AppText.headline2()),
             const Spacer(),
-            Text('${layers.length} layer${layers.length != 1 ? 's' : ''}', style: AppText.labelDefault(color: AppColors.inkMuted)),
+            Text('${reversed.length} layer${reversed.length != 1 ? 's' : ''}', style: AppText.labelDefault(color: AppColors.inkMuted)),
           ],
         ),
         const SizedBox(height: 16),
@@ -1278,9 +1685,8 @@ class _LayersPanel extends StatelessWidget {
           itemCount: reversed.length,
           onReorder: (oldI, newI) {
             if (oldI < newI) newI -= 1;
-            final totalLen = layers.length;
-            final realOld = totalLen - 1 - oldI;
-            final realNew = totalLen - 1 - newI;
+            final realOld = reversed[oldI].key;
+            final realNew = reversed[newI].key;
             onReorder(realOld, realNew);
           },
           itemBuilder: (ctx, i) {

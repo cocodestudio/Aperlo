@@ -16,6 +16,7 @@ import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/bottom_nav.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -25,7 +26,8 @@ class HomeScreen extends ConsumerWidget {
     final collectionsAsync = ref.watch(collectionsProvider);
     final topPad = MediaQuery.of(context).padding.top;
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : 2);
+    final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : (screenWidth < 340 ? 1 : 2));
+    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 1.15);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -142,7 +144,7 @@ class HomeScreen extends ConsumerWidget {
                           crossAxisCount: crossAxisCount,
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: 4 / 3,
+                          childAspectRatio: childAspectRatio,
                         ),
                       ),
                 loading: () => SliverGrid(
@@ -159,7 +161,7 @@ class HomeScreen extends ConsumerWidget {
                     crossAxisCount: crossAxisCount,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 4 / 3,
+                    childAspectRatio: childAspectRatio,
                   ),
                 ),
                 error: (e, _) => SliverToBoxAdapter(
@@ -172,7 +174,9 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.s64)),
+            SliverToBoxAdapter(
+              child: SizedBox(height: getFloatingBottomNavClearance(context)),
+            ),
           ],
         ),
       ),
@@ -189,11 +193,13 @@ class HomeScreen extends ConsumerWidget {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
         title: Text('New collection', style: AppText.headline2()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(controller: nameCtrl, hint: 'Collection name', autofocus: true),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTextField(controller: nameCtrl, hint: 'Collection name', autofocus: true),
+            ],
+          ),
         ),
         actions: [
           TextButton(

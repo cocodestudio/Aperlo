@@ -18,6 +18,7 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/bottom_nav.dart';
 import 'package:uuid/uuid.dart';
 
 class CollectionsScreen extends ConsumerStatefulWidget {
@@ -44,7 +45,8 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
   Widget build(BuildContext context) {
     final collectionsAsync = ref.watch(collectionsProvider);
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : 2);
+    final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : (screenWidth < 340 ? 1 : 2));
+    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 1.15);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -55,13 +57,16 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
       ),
       floatingActionButton: (collectionsAsync.valueOrNull ?? []).isEmpty
           ? null
-          : FloatingActionButton(
-              onPressed: () => _showNewCollectionDialog(context),
-              shape: const CircleBorder(),
-              backgroundColor: AppColors.accent,
-              elevation: 4,
-              highlightElevation: 8,
-              child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+          : Padding(
+              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
+              child: FloatingActionButton(
+                onPressed: () => _showNewCollectionDialog(context),
+                shape: const CircleBorder(),
+                backgroundColor: AppColors.accent,
+                elevation: 4,
+                highlightElevation: 8,
+                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+              ),
             ),
       body: Column(
         children: [
@@ -156,13 +161,16 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
                           crossAxisCount: crossAxisCount,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          childAspectRatio: 4 / 3,
+                          childAspectRatio: childAspectRatio,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, i) => _CollectionGridCard(collection: cols[i]),
                           childCount: cols.length,
                         ),
                       ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: getFloatingBottomNavClearance(context)),
                     ),
                   ],
                 );
@@ -172,7 +180,7 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
                 crossAxisCount: crossAxisCount,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 4 / 3,
+                childAspectRatio: childAspectRatio,
                 children: List.generate(6, (_) => const SkeletonBox(width: null, height: double.infinity, radius: BorderRadius.all(Radius.circular(AppRadius.r12)))),
               ),
               error: (e, _) => ErrorState(
@@ -197,11 +205,13 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
         title: Text('New collection', style: AppText.headline2()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppTextField(controller: nameCtrl, hint: 'Collection name', autofocus: true),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTextField(controller: nameCtrl, hint: 'Collection name', autofocus: true),
+            ],
+          ),
         ),
         actions: [
           TextButton(

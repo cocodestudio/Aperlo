@@ -271,18 +271,21 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 32,
-                    offset: const Offset(0, -8),
-                  ),
-                ],
-              ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 600),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 32,
+                      offset: const Offset(0, -8),
+                    ),
+                  ],
+                ),
               padding: EdgeInsets.fromLTRB(
                 28,
                 28,
@@ -407,9 +410,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ),
           ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
   }
 }
 

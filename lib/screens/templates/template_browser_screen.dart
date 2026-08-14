@@ -13,6 +13,7 @@ import '../../providers/app_providers.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/bottom_nav.dart';
 
 
 const _categories = [
@@ -68,7 +69,8 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final templatesAsync = ref.watch(templatesProvider(selectedCategory == 'All' ? null : selectedCategory));
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 960 ? 5 : (screenWidth > 720 ? 4 : (screenWidth > 480 ? 3 : 2));
+    final crossAxisCount = screenWidth > 960 ? 5 : (screenWidth > 720 ? 4 : (screenWidth > 480 ? 3 : (screenWidth < 340 ? 1 : 2)));
+    final childAspectRatio = screenWidth < 340 ? 3 / 4 : 9 / 16;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -124,7 +126,7 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
                           crossAxisCount: crossAxisCount,
                           mainAxisSpacing: 16,
                           crossAxisSpacing: 16,
-                          childAspectRatio: 9 / 16,
+                          childAspectRatio: childAspectRatio,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, i) => _TemplateCard(
@@ -148,6 +150,9 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
                           ),
                         ),
                       ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: getFloatingBottomNavClearance(context)),
+                    ),
                   ],
                 );
               },
@@ -157,7 +162,7 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
                   crossAxisCount: crossAxisCount,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 9 / 16,
+                  childAspectRatio: childAspectRatio,
                 ),
                 itemCount: 6,
                 itemBuilder: (context, _) => const SkeletonCard(),

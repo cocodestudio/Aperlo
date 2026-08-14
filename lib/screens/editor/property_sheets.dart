@@ -2,23 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_radius.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
-
-// Common helpers
-Color hexToColor(String hex) {
-  final h = hex.replaceFirst('#', '');
-  try {
-    return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
-  } catch (_) {
-    return const Color(0xFF1A6B4A);
-  }
-}
-
-String colorToHex(Color c) {
-  return '#${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-}
+import '../../widgets/custom_color_picker.dart';
 
 Widget buildSection(String title, List<Widget> children) {
   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -150,7 +139,13 @@ class PropertyColorPicker extends StatefulWidget {
   final String label;
   final String hexColor;
   final ValueChanged<String> onChanged;
-  const PropertyColorPicker({super.key, required this.label, required this.hexColor, required this.onChanged});
+
+  const PropertyColorPicker({
+    super.key,
+    required this.label,
+    required this.hexColor,
+    required this.onChanged,
+  });
 
   @override
   State<PropertyColorPicker> createState() => _PropertyColorPickerState();
@@ -160,34 +155,24 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
   late TextEditingController _ctrl;
   final FocusNode _focusNode = FocusNode();
   bool _isFocused = false;
-  
-  static const _presetColors = [
-    Color(0xFF141A14), Color(0xFFFFFFFF), Color(0xFF1A6B4A), Color(0xFF0082FF),
-    Color(0xFFFF3B30), Color(0xFF007AFF), Color(0xFFFF9500), Color(0xFF34C759),
-    Color(0xFF5856D6), Color(0xFFAF52DE), Color(0xFFFF2D55), Color(0xFF636366),
-  ];
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: _formatHex(widget.hexColor));
+    _ctrl = TextEditingController(text: rawHexValue(widget.hexColor));
     _focusNode.addListener(() {
       if (mounted) setState(() => _isFocused = _focusNode.hasFocus);
     });
   }
 
-  String _formatHex(String input) {
-    var val = input.replaceAll('#', '').toUpperCase();
-    return '#$val';
-  }
-  
   @override
   void didUpdateWidget(PropertyColorPicker old) {
     super.didUpdateWidget(old);
-    if (old.hexColor != widget.hexColor) {
-      final formatted = _formatHex(widget.hexColor);
-      if (_ctrl.text != formatted) {
-        _ctrl.text = formatted;
+    final rawOld = rawHexValue(old.hexColor);
+    final rawNew = rawHexValue(widget.hexColor);
+    if (rawOld != rawNew) {
+      if (_ctrl.text.toUpperCase() != rawNew) {
+        _ctrl.text = rawNew;
       }
     }
   }
@@ -199,17 +184,35 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
     super.dispose();
   }
 
-  void _submitColor(String val) {
-    var clean = val.trim().replaceAll('#', '');
-    if (clean.length == 6 || clean.length == 8 || clean.length == 3) {
-      final formatted = '#${clean.toUpperCase()}';
+  void _submitColor(String rawVal) {
+    var clean = rawVal.trim().replaceAll('#', '').toUpperCase();
+    if (clean.length == 3) {
+      clean = '${clean[0]}${clean[0]}${clean[1]}${clean[1]}${clean[2]}${clean[2]}';
+    }
+    if (clean.length == 6 || clean.length == 8) {
+      final formatted = '#$clean';
+      ColorHistoryManager.instance.addColor(formatted);
       widget.onChanged(formatted);
     }
   }
 
+  void _openColorPickerDialog() {
+    HapticFeedback.selectionClick();
+    CustomColorPickerDialog.show(
+      context,
+      initialHex: widget.hexColor,
+      onColorSelected: (selectedHex) {
+        final clean = rawHexValue(selectedHex);
+        _ctrl.text = clean;
+        widget.onChanged(selectedHex);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    Color currentColor = hexToColor(widget.hexColor);
+    final currentColor = hexToColor(widget.hexColor);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -217,29 +220,26 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(widget.label, style: AppText.labelLarge()),
         ),
+
+        // Row: Left-side flat live color preview box + Flat Hex Input Field with # prefix icon
         Row(
           children: [
+            // Flat Live Color Preview Box (NO ELEVATION, flat clean border)
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
                 color: currentColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.borderDefault, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: currentColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: AppRadius.br10,
+                border: Border.all(color: AppColors.borderDefault, width: 1.5),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
+
+            // Flat Hex Input Field (same font as font size: DMSans 700)
             Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                height: 44,
+              child: Container(
+                height: 40,
                 decoration: BoxDecoration(
                   color: _isFocused ? AppColors.surface : AppColors.surfaceMuted.withValues(alpha: 0.6),
                   borderRadius: AppRadius.br10,
@@ -247,22 +247,13 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
                     color: _isFocused ? AppColors.accent : AppColors.borderDefault,
                     width: _isFocused ? 1.8 : 1.0,
                   ),
-                  boxShadow: _isFocused
-                      ? [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.12),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : [],
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
                     Icon(
                       LucideIcons.hash,
-                      size: 15,
+                      size: 16,
                       color: _isFocused ? AppColors.accent : AppColors.inkMuted,
                     ),
                     const SizedBox(width: 6),
@@ -271,17 +262,21 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
                         controller: _ctrl,
                         focusNode: _focusNode,
                         style: AppText.bodyLarge(color: AppColors.inkPrimary).copyWith(
-                          fontSize: 14,
                           fontWeight: FontWeight.w700,
+                          fontSize: 15,
                           letterSpacing: 1.0,
                         ),
                         onSubmitted: _submitColor,
                         onChanged: (val) {
-                          if (!val.startsWith('#')) {
-                            _ctrl.text = '#$val';
-                            _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+                          var clean = val.replaceAll('#', '').toUpperCase();
+                          if (clean.length > 8) clean = clean.substring(0, 8);
+                          if (clean != val) {
+                            _ctrl.value = TextEditingValue(
+                              text: clean,
+                              selection: TextSelection.collapsed(offset: clean.length),
+                            );
                           }
-                          _submitColor(_ctrl.text);
+                          _submitColor(clean);
                         },
                         decoration: const InputDecoration(
                           isDense: true,
@@ -289,7 +284,7 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          hintText: '#1A6B4A',
+                          hintText: '1A6B4A',
                         ),
                       ),
                     ),
@@ -299,44 +294,77 @@ class _PropertyColorPickerState extends State<PropertyColorPicker> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _presetColors.map((c) {
-            final hex = colorToHex(c);
-            final isSelected = widget.hexColor.toUpperCase() == hex.toUpperCase();
-            return GestureDetector(
-              onTap: () {
-                _ctrl.text = hex;
-                widget.onChanged(hex);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: c,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? AppColors.accent : AppColors.borderDefault,
-                    width: isSelected ? 2.5 : 1.0,
+
+        const SizedBox(height: 10),
+
+        // Swatches list: includes "+" button to trigger color picker dialog + real-time history/preset swatches
+        AnimatedBuilder(
+          animation: ColorHistoryManager.instance,
+          builder: (context, _) {
+            final history = ColorHistoryManager.instance.history;
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  // "+" button to trigger custom color picker dialog
+                  GestureDetector(
+                    onTap: _openColorPickerDialog,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.accent.withValues(alpha: 0.6), width: 1.5),
+                      ),
+                      child: const Icon(LucideIcons.plus, size: 16, color: AppColors.accent),
+                    ),
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+
+                  // Swatches
+                  ...history.take(14).map((hex) {
+                    final c = hexToColor(hex);
+                    final isSelected = widget.hexColor.toUpperCase() == hex.toUpperCase();
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _ctrl.text = rawHexValue(hex);
+                        ColorHistoryManager.instance.addColor(hex);
+                        widget.onChanged(hex);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? AppColors.accent : AppColors.borderDefault,
+                            width: isSelected ? 2.5 : 1.0,
                           ),
-                        ]
-                      : [],
-                ),
+                        ),
+                        child: isSelected
+                            ? Center(
+                                child: Icon(
+                                  LucideIcons.check,
+                                  size: 14,
+                                  color: c.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  }),
+                ],
               ),
             );
-          }).toList(),
+          },
         ),
-        const SizedBox(height: 16),
+
+        const SizedBox(height: 14),
       ],
     );
   }
@@ -486,41 +514,104 @@ class TogglePillGroup extends StatelessWidget {
   final String selectedValue;
   final ValueChanged<String> onChanged;
 
-  const TogglePillGroup({super.key, required this.options, required this.selectedValue, required this.onChanged});
+  const TogglePillGroup({
+    super.key,
+    required this.options,
+    required this.selectedValue,
+    required this.onChanged,
+  });
+
+  static const double _padding = 4.0;
+  static const double _height = 42.0;
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = options.indexOf(selectedValue).clamp(0, options.isEmpty ? 0 : options.length - 1);
+
     return Container(
+      height: _height,
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
-        borderRadius: AppRadius.br10,
+        color: AppColors.surfaceMuted.withValues(alpha: 0.6),
+        borderRadius: AppRadius.brFull,
+        border: Border.all(color: AppColors.borderSubtle, width: 1),
       ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: options.map((opt) {
-          final isSelected = opt == selectedValue;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(opt),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.surface : Colors.transparent,
-                  borderRadius: AppRadius.br6,
-                  boxShadow: isSelected ? [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
-                  ] : [],
+      child: ClipRRect(
+        borderRadius: AppRadius.brFull,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableWidth = constraints.maxWidth - (_padding * 2);
+            final itemWidth = options.isNotEmpty ? availableWidth / options.length : availableWidth;
+            final pillHeight = constraints.maxHeight - (_padding * 2);
+
+            return Stack(
+              children: [
+                // Inner sliding active pill indicator
+                if (options.isNotEmpty && selectedIndex >= 0)
+                  AnimatedPositioned(
+                    duration: AppMotion.base,
+                    curve: AppMotion.easeOut,
+                    left: _padding + (selectedIndex * itemWidth),
+                    top: _padding,
+                    width: itemWidth,
+                    height: pillHeight,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: AppRadius.brFull,
+                        boxShadow: AppShadows.subtle,
+                      ),
+                    ),
+                  ),
+                // Row of interactive tab options
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _padding),
+                  child: Row(
+                    children: options.map((opt) {
+                      final isSelected = opt == selectedValue;
+                      return SizedBox(
+                        width: itemWidth,
+                        height: constraints.maxHeight,
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: AppRadius.brFull,
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            borderRadius: AppRadius.brFull,
+                            splashColor: isSelected
+                                ? Colors.transparent
+                                : AppColors.accent.withValues(alpha: 0.14),
+                            highlightColor: isSelected
+                                ? Colors.transparent
+                                : AppColors.accent.withValues(alpha: 0.06),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              onChanged(opt);
+                            },
+                            child: Center(
+                              child: AnimatedDefaultTextStyle(
+                                duration: AppMotion.fast,
+                                style: AppText.labelDefault(
+                                  color: isSelected ? AppColors.accentOn : AppColors.inkMuted,
+                                ).copyWith(
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                                child: Text(
+                                  opt,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  opt,
-                  style: AppText.labelDefault(color: isSelected ? AppColors.inkPrimary : AppColors.inkMuted).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

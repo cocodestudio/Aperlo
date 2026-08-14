@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -95,14 +94,6 @@ class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
                     }
                   },
                 ),
-                if (false) // TODO: Re-enable when custom domain is set up
-                  _GlassIconButton(
-                    icon: LucideIcons.share2,
-                    onTap: () {
-                      final shareLink = 'https://framekit-app.web.app/templates/$_currentId';
-                      Share.share('Check out this template on Aperlo: $shareLink');
-                    },
-                  ),
               ],
             ),
           ),
@@ -368,7 +359,12 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
                 ),
               ],
             ),
-            padding: const EdgeInsets.fromLTRB(AppSpacing.s24, AppSpacing.s20, AppSpacing.s24, AppSpacing.s24),
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.s24,
+              AppSpacing.s20,
+              AppSpacing.s24,
+              MediaQuery.of(context).padding.bottom + AppSpacing.s24,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

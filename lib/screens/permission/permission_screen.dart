@@ -216,22 +216,26 @@ class _PermissionScreenState extends State<PermissionScreen>
           const Positioned.fill(child: _BackgroundDots()),
           LayoutBuilder(
             builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  // Ensure the column fills the full available height so
-                  // Spacer pushes buttons to the bottom when content is short
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        left: 28,
-                        right: 28,
-                        top: topPad + (isCompact ? 12 : 20),
-                        bottom: bottomPad + (isCompact ? 12 : 20),
+              return Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      // Ensure the column fills the full available height so
+                      // Spacer pushes buttons to the bottom when content is short
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: 28,
+                            right: 28,
+                            top: topPad + (isCompact ? 12 : 20),
+                            bottom: bottomPad + (isCompact ? 12 : 20),
+                          ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -289,12 +293,15 @@ class _PermissionScreenState extends State<PermissionScreen>
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+            ),
+          );
+        },
       ),
-    ));
+    ],
+  ),
+),
+);
   }
 }
 

@@ -1,0 +1,8 @@
+{
+  "antigravity.agent.autoApproveEdits": true,
+  "antigravity.agent.autoAcceptEdits": true,
+  "antigravity.agent.fileEdits.autoApprove": true,
+  "antigravity.agent.toolCallAutoApprove": true,
+  "chat.tools.autoApprove": true,
+  "chat.agent.autoApprove": true
+}

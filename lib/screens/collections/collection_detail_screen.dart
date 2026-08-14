@@ -16,6 +16,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../export/export_screen.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/bottom_nav.dart';
 import 'package:uuid/uuid.dart';
 
 class CollectionDetailScreen extends ConsumerWidget {
@@ -28,7 +29,7 @@ class CollectionDetailScreen extends ConsumerWidget {
     final screenshotsAsync = ref.watch(screenshotsProvider(collectionId));
     final collection = collectionsAsync.valueOrNull?.where((c) => c.id == collectionId).firstOrNull;
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 960 ? 5 : (screenWidth > 720 ? 4 : (screenWidth > 480 ? 3 : 2));
+    final crossAxisCount = screenWidth > 960 ? 5 : (screenWidth > 720 ? 4 : (screenWidth > 480 ? 3 : (screenWidth < 340 ? 1 : 2)));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -58,13 +59,16 @@ class CollectionDetailScreen extends ConsumerWidget {
       ),
       floatingActionButton: (screenshotsAsync.valueOrNull ?? []).isEmpty
           ? null
-          : FloatingActionButton(
-              onPressed: () => context.go('/templates', extra: collectionId),
-              backgroundColor: AppColors.accent,
-              elevation: 4,
-              highlightElevation: 8,
-              shape: const CircleBorder(),
-              child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+          : Padding(
+              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
+              child: FloatingActionButton(
+                onPressed: () => context.go('/templates', extra: collectionId),
+                backgroundColor: AppColors.accent,
+                elevation: 4,
+                highlightElevation: 8,
+                shape: const CircleBorder(),
+                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+              ),
             ),
       body: screenshotsAsync.when(
         data: (shots) => shots.isEmpty
@@ -93,8 +97,8 @@ class CollectionDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.s64), // Space for FAB
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: getFloatingBottomNavClearance(context)),
                   ),
                 ],
               ),
