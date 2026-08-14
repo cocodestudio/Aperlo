@@ -17,6 +17,7 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
+import '../../widgets/bottom_nav.dart';
 import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
@@ -56,13 +57,16 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
       ),
       floatingActionButton: (collectionsAsync.valueOrNull ?? []).isEmpty
           ? null
-          : FloatingActionButton(
-              onPressed: () => _showNewCollectionDialog(context),
-              shape: const CircleBorder(),
-              backgroundColor: AppColors.accent,
-              elevation: 4,
-              highlightElevation: 8,
-              child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+          : Padding(
+              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
+              child: FloatingActionButton(
+                onPressed: () => _showNewCollectionDialog(context),
+                shape: const CircleBorder(),
+                backgroundColor: AppColors.accent,
+                elevation: 4,
+                highlightElevation: 8,
+                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+              ),
             ),
       body: Column(
         children: [

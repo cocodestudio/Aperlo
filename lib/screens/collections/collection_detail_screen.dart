@@ -15,7 +15,7 @@ import '../../widgets/skeleton_loader.dart';
 import '../export/export_screen.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/app_text_field.dart';
-
+import '../../widgets/bottom_nav.dart';
 import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
@@ -59,13 +59,16 @@ class CollectionDetailScreen extends ConsumerWidget {
       ),
       floatingActionButton: (screenshotsAsync.valueOrNull ?? []).isEmpty
           ? null
-          : FloatingActionButton(
-              onPressed: () => context.go('/templates', extra: collectionId),
-              backgroundColor: AppColors.accent,
-              elevation: 4,
-              highlightElevation: 8,
-              shape: const CircleBorder(),
-              child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+          : Padding(
+              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
+              child: FloatingActionButton(
+                onPressed: () => context.go('/templates', extra: collectionId),
+                backgroundColor: AppColors.accent,
+                elevation: 4,
+                highlightElevation: 8,
+                shape: const CircleBorder(),
+                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+              ),
             ),
       body: screenshotsAsync.when(
         data: (shots) => shots.isEmpty
