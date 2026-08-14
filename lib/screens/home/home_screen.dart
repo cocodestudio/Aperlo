@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
     final topPad = MediaQuery.of(context).padding.top;
     final screenWidth = MediaQuery.of(context).size.width;
     final crossAxisCount = screenWidth > 960 ? 4 : (screenWidth > 600 ? 3 : (screenWidth < 340 ? 1 : 2));
-    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 1.15);
+    final childAspectRatio = screenWidth < 340 ? 16 / 9 : (screenWidth > 600 ? 4 / 3 : 0.98);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -441,44 +441,41 @@ class _CollectionCardState extends ConsumerState<_CollectionCard> {
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 58, child: header),
-              Expanded(
-                flex: 42,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        c.name,
-                        style: AppText.headline3().copyWith(fontSize: 14),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            LucideIcons.image,
-                            size: 11,
-                            color: AppColors.inkMuted,
+              Expanded(child: header),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      c.name,
+                      style: AppText.headline3().copyWith(fontSize: 13.5),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          LucideIcons.image,
+                          size: 11,
+                          color: AppColors.inkMuted,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            '${c.screenshotCount} screenshot${c.screenshotCount != 1 ? 's' : ''}',
+                            style: AppText.bodySmall().copyWith(fontSize: 11),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              '${c.screenshotCount} screenshot${c.screenshotCount != 1 ? 's' : ''}',
-                              style: AppText.bodySmall(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],

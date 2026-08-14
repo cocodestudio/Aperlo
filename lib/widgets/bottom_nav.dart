@@ -194,32 +194,38 @@ class _NavItem extends StatelessWidget {
           onTap();
         },
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedSwitcher(
-                duration: AppMotion.fast,
-                child: Icon(
-                  tab.icon,
-                  key: ValueKey('${tab.label}_$isActive'),
-                  size: 20,
-                  color: isActive ? activeColor : inactiveColor,
-                ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: AppMotion.fast,
+                    child: Icon(
+                      tab.icon,
+                      key: ValueKey('${tab.label}_$isActive'),
+                      size: 20,
+                      color: isActive ? activeColor : inactiveColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  AnimatedDefaultTextStyle(
+                    duration: AppMotion.fast,
+                    style: AppText.labelSmall(
+                      color: isActive ? activeColor : inactiveColor,
+                    ).copyWith(
+                      fontWeight:
+                          isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 11,
+                    ),
+                    child: Text(tab.label),
+                  ),
+                ],
               ),
-              const SizedBox(height: 3),
-              AnimatedDefaultTextStyle(
-                duration: AppMotion.fast,
-                style: AppText.labelSmall(
-                  color: isActive ? activeColor : inactiveColor,
-                ).copyWith(
-                  fontWeight:
-                      isActive ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 11,
-                ),
-                child: Text(tab.label),
-              ),
-            ],
+            ),
           ),
         ),
       ),
