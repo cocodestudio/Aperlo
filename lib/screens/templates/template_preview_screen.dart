@@ -167,16 +167,6 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
   Future<void> _useTemplate() async {
     final collections = ref.read(collectionsProvider).valueOrNull ?? [];
 
-    if (widget.preselectedCollectionId != null && collections.isNotEmpty) {
-      final col = collections.firstWhereOrNull(
-        (c) => c.id == widget.preselectedCollectionId,
-      ) ?? collections.firstOrNull;
-      if (col != null) {
-        await _createScreenshotInCollection(col.id, col);
-        return;
-      }
-    }
-
     if (collections.isEmpty) {
       final newName = await _showCreateCollectionDialog();
       if (newName == null || !mounted) return;
@@ -538,15 +528,13 @@ class _CollectionPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
+    return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 520),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
           boxShadow: AppShadows.float,
-          border: Border.all(color: AppColors.borderSubtle, width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         child: SafeArea(
