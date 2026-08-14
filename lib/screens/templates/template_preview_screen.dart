@@ -197,6 +197,7 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (_) => _CollectionPickerSheet(
         collections: collections,
         onCreateNew: () async {

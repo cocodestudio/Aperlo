@@ -409,6 +409,7 @@ class _CollectionGridCardState extends ConsumerState<_CollectionGridCard> {
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
+              useRootNavigator: true,
               backgroundColor: Colors.transparent,
               builder: (ctx) => ExportSheet(
                 screenshotId: widget.collection.screenshotIds.first,

@@ -146,6 +146,7 @@ class CollectionDetailScreen extends ConsumerWidget {
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
+              useRootNavigator: true,
               backgroundColor: Colors.transparent,
               builder: (ctx) => ExportSheet(
                 screenshotId: col.screenshotIds.first,
@@ -415,6 +416,7 @@ class _ScreenshotCardState extends ConsumerState<_ScreenshotCard> {
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
+              useRootNavigator: true,
               backgroundColor: Colors.transparent,
               builder: (ctx) => ExportSheet(screenshotId: s.id),
             );

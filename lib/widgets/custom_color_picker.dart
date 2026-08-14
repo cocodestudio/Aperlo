@@ -137,6 +137,7 @@ class CustomColorPickerDialog extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => CustomColorPickerDialog(
         initialHex: initialHex,

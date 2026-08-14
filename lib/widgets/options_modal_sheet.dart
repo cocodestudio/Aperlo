@@ -58,7 +58,7 @@ class AppOptionsModalSheet extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      useSafeArea: true,
+      useRootNavigator: true,
       builder: (ctx) => AppOptionsModalSheet(
         title: title,
         subtitle: subtitle,
@@ -75,15 +75,13 @@ class AppOptionsModalSheet extends StatelessWidget {
     final standardActions = actions.where((a) => !a.isDestructive).toList();
     final destructiveActions = actions.where((a) => a.isDestructive).toList();
 
-    return Align(
-      alignment: Alignment.bottomCenter,
+    return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 520),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
           boxShadow: AppShadows.float,
-          border: Border.all(color: AppColors.borderSubtle, width: 1),
         ),
         clipBehavior: Clip.antiAlias,
         child: SafeArea(

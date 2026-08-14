@@ -47,8 +47,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        navigatorContainerBuilder: (context, navigationShell, children) {
+          return _AnimatedBranchContainer(
+            currentIndex: navigationShell.currentIndex,
+            children: children,
+          );
+        },
         branches: [
           StatefulShellBranch(
             routes: [
@@ -109,3 +115,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _AnimatedBranchContainer extends StatelessWidget {
+  const _AnimatedBranchContainer({
+    required this.currentIndex,
+    required this.children,
+  });
+
+  final int currentIndex;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: List.generate(children.length, (index) {
+        final isActive = index == currentIndex;
+        return IgnorePointer(
+          ignoring: !isActive,
+          child: AnimatedOpacity(
+            opacity: isActive ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeInOutCubic,
+            child: AnimatedSlide(
+              offset: isActive ? Offset.zero : const Offset(0.0, 0.015),
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              child: TickerMode(
+                enabled: isActive,
+                child: children[index],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}

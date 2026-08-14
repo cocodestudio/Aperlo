@@ -370,6 +370,13 @@ Widget _withSelection(Widget child, bool isSelected) {
                 width: 2.0,
               ),
               borderRadius: BorderRadius.circular(4.0),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1A6B4A).withValues(alpha: 0.25),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
           ),
         ),
@@ -601,7 +608,7 @@ class _TextLayer extends StatelessWidget {
 
     final inner = Opacity(
       opacity: opacity.clamp(0.0, 1.0),
-      child: _apply3DTransform(textWidget, layer),
+      child: textWidget,
     );
 
     return _Positioner(
@@ -612,9 +619,12 @@ class _TextLayer extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        SizedBox(width: width, child: inner),
-        isSelected,
+      child: _apply3DTransform(
+        _withSelection(
+          SizedBox(width: width, child: inner),
+          isSelected,
+        ),
+        layer,
       ),
     );
   }
@@ -707,8 +717,6 @@ class _PhoneLayer extends StatelessWidget {
       scale: scale,
     );
 
-    phone = _apply3DTransform(phone, layer);
-
     return _Positioner(
       layer: layer, w: w, h: h,
       onPanUpdate: onPanUpdate,
@@ -716,12 +724,15 @@ class _PhoneLayer extends StatelessWidget {
       onLongPress: onLongPress,
       child: GestureDetector(
         onTap: onTap,
-        child: _withSelection(
-          Opacity(
-            opacity: opacity.clamp(0.0, 1.0),
-            child: phone,
+        child: _apply3DTransform(
+          _withSelection(
+            Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: phone,
+            ),
+            isSelected,
           ),
-          isSelected,
+          layer,
         ),
       ),
     );
@@ -994,7 +1005,6 @@ class _ShapeLayer extends StatelessWidget {
     final heightBase = layer['height'] != null ? _f(layer['height']) * (w * 844 / 390) : widthBase;
     final height = heightBase * scale;
     final color = _color(layer['color']);
-    final rotation = _f(layer['rotation']); // degrees
     final opacity = _f(layer['opacity'], 1.0);
     final shapeType =
         layer['shape_type'] as String? ?? layer['shape'] as String? ?? 'circle';
@@ -1185,17 +1195,15 @@ class _ShapeLayer extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Opacity(
-          opacity: opacity.clamp(0.0, 1.0),
-          child: rotation != 0
-              ? Transform.rotate(
-                  angle: rotation * math.pi / 180,
-                  child: shape,
-                )
-              : shape,
+      child: _apply3DTransform(
+        _withSelection(
+          Opacity(
+            opacity: opacity.clamp(0.0, 1.0),
+            child: shape,
+          ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1405,16 +1413,19 @@ class _AccentBar extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Container(
-          width: barW,
-          height: barH,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(barH / 2),
+      child: _apply3DTransform(
+        _withSelection(
+          Container(
+            width: barW,
+            height: barH,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(barH / 2),
+            ),
           ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1482,42 +1493,45 @@ class _BadgeLayer extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(cr),
-            border: borderColor != null
-                ? Border.all(color: borderColor, width: 1.5)
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Text(icon,
-                    style: TextStyle(
-                        fontSize: fontSize,
-                        decoration: TextDecoration.none)),
-                SizedBox(width: fontSize * 0.4),
-              ],
-              Text(
-                content,
-                style: _googleFont(
-                  fontName,
-                  TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: weight,
-                    color: textColor,
-                    decoration: TextDecoration.none,
+      child: _apply3DTransform(
+        _withSelection(
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(cr),
+              border: borderColor != null
+                  ? Border.all(color: borderColor, width: 1.5)
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Text(icon,
+                      style: TextStyle(
+                          fontSize: fontSize,
+                          decoration: TextDecoration.none)),
+                  SizedBox(width: fontSize * 0.4),
+                ],
+                Text(
+                  content,
+                  style: _googleFont(
+                    fontName,
+                    TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: weight,
+                      color: textColor,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1579,45 +1593,48 @@ class _FeatureRow extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: fontSize * 1.8,
-              height: fontSize * 1.8,
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
+      child: _apply3DTransform(
+        _withSelection(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: fontSize * 1.8,
+                height: fontSize * 1.8,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    icon,
+                    style: TextStyle(
+                      fontSize: fontSize * 0.9,
+                      color: iconColor,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
               ),
-              child: Center(
+              Expanded(
                 child: Text(
-                  icon,
-                  style: TextStyle(
-                    fontSize: fontSize * 0.9,
-                    color: iconColor,
-                    decoration: TextDecoration.none,
+                  content,
+                  style: _googleFont(
+                    fontName,
+                    TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: weight,
+                      color: textColor,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Text(
-                content,
-                style: _googleFont(
-                  fontName,
-                  TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: weight,
-                    color: textColor,
-                    decoration: TextDecoration.none,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1663,7 +1680,6 @@ class _ImageLayer extends StatelessWidget {
     final imgH = layer['height'] != null ? _f(layer['height']) * (w * 844 / 390) : imgW;
     final cr = _f(layer['corner_radius'], 0.0) * (w / 390.0);
     final opacity = _f(layer['opacity'], 1.0);
-    final rotation = _f(layer['rotation']);
     final url = layer['url'] as String?;
     final asset = layer['asset'] as String?;
     final fitStr = layer['fit'] as String? ?? 'cover';
@@ -1699,17 +1715,15 @@ class _ImageLayer extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Opacity(
-          opacity: opacity.clamp(0.0, 1.0),
-          child: rotation != 0
-              ? Transform.rotate(
-                  angle: rotation * math.pi / 180,
-                  child: result,
-                )
-              : result,
+      child: _apply3DTransform(
+        _withSelection(
+          Opacity(
+            opacity: opacity.clamp(0.0, 1.0),
+            child: result,
+          ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1782,38 +1796,41 @@ class _FrostedPanel extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        ClipRRect(
-          borderRadius: BorderRadius.circular(cr), child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blur),
-            child: Container(
-              width: pw,
-              height: ph,
-              decoration: BoxDecoration(
-                color: tint,
-                borderRadius: BorderRadius.circular(cr),
-                border: Border.all(color: borderColor, width: borderWidth),
-              ),
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: 16 * (w / 390.0), vertical: 12 * (w / 390.0)),
-              child: content != null
-                  ? Text(
-                      content,
-                      textAlign: TextAlign.center,
-                      style: _googleFont(
-                        fontName,
-                        TextStyle(
-                          fontSize: fontSize,
-                          color: textColor,
-                          decoration: TextDecoration.none,
+      child: _apply3DTransform(
+        _withSelection(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(cr), child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: blur),
+              child: Container(
+                width: pw,
+                height: ph,
+                decoration: BoxDecoration(
+                  color: tint,
+                  borderRadius: BorderRadius.circular(cr),
+                  border: Border.all(color: borderColor, width: borderWidth),
+                ),
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 16 * (w / 390.0), vertical: 12 * (w / 390.0)),
+                child: content != null
+                    ? Text(
+                        content,
+                        textAlign: TextAlign.center,
+                        style: _googleFont(
+                          fontName,
+                          TextStyle(
+                            fontSize: fontSize,
+                            color: textColor,
+                            decoration: TextDecoration.none,
+                          ),
                         ),
-                      ),
-                    )
-                  : null,
+                      )
+                    : null,
+              ),
             ),
           ),
+          isSelected,
         ),
-        isSelected,
+        layer,
       ),
     );
   }
@@ -1858,9 +1875,12 @@ class _DividerLayer extends StatelessWidget {
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
       onLongPress: onLongPress,
-      child: _withSelection(
-        Container(width: width, height: thickness, color: color),
-        isSelected,
+      child: _apply3DTransform(
+        _withSelection(
+          Container(width: width, height: thickness, color: color),
+          isSelected,
+        ),
+        layer,
       ),
     );
   }

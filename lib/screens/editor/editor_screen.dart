@@ -325,6 +325,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => DraggableScrollableSheet(
@@ -526,6 +527,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     context: context,
                     isScrollControlled: true,
                     useSafeArea: true,
+                    useRootNavigator: true,
                     backgroundColor: Colors.transparent,
                     builder: (ctx) => ExportSheet(screenshotId: widget.screenshotId),
                   );
