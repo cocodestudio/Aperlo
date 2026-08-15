@@ -1,13 +1,11 @@
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+// v1.0.1 - Global Admin App Initialization
+admin.initializeApp();
 
 exports.notifyNewTemplate = functions.firestore
     .document('templates/{templateId}')
     .onCreate(async (snapshot, context) => {
-    
-    if (admin.apps.length === 0) {
-        admin.initializeApp();
-    }
 
     const templateData = snapshot.data();
     const templateName = templateData.name || "A new template";
