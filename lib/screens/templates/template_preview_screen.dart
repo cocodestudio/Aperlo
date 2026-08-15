@@ -538,39 +538,6 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
                         runSpacing: 8,
                         children: [
                           CategoryChip(label: template.category, isSelected: true),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceMuted,
-                              borderRadius: AppRadius.brFull,
-                              border: Border.all(color: AppColors.borderSubtle),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  template.deviceType.name == 'tablet'
-                                      ? LucideIcons.tablet
-                                      : template.deviceType.name == 'desktop'
-                                          ? LucideIcons.monitor
-                                          : LucideIcons.smartphone,
-                                  size: 13,
-                                  color: AppColors.inkSecondary,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  template.deviceType.name == 'tablet'
-                                      ? 'Tablet'
-                                      : template.deviceType.name == 'desktop'
-                                          ? 'Desktop'
-                                          : 'Phone (9:16)',
-                                  style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                           if (template.totalUses > 0)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
