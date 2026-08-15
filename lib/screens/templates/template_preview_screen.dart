@@ -29,18 +29,19 @@ extension _IterableExt<T> on Iterable<T> {
   }
 }
 
-final _templateDetailProvider = FutureProvider.family<Template?, String>((ref, id) async {
+final _templateDetailProvider = FutureProvider.autoDispose.family<Template?, String>((ref, id) async {
   try {
     // 1. Check if template is already loaded in templates list
-    final allLoaded = ref.watch(templatesProvider(null)).valueOrNull ?? [];
+    final allLoaded = ref.read(templatesProvider(null)).valueOrNull ?? [];
     final found = allLoaded.firstWhereOrNull((t) => t.id == id);
     if (found != null) return found;
 
     // 2. Fetch directly from Firestore service
-    return await ref.watch(firestoreServiceProvider).getTemplate(id);
+    return await ref.read(firestoreServiceProvider).getTemplate(id);
   } catch (e) {
     debugPrint('Error loading template $id: $e');
-    return null;
+    final allLoaded = ref.read(templatesProvider(null)).valueOrNull ?? [];
+    return allLoaded.firstWhereOrNull((t) => t.id == id);
   }
 });
 

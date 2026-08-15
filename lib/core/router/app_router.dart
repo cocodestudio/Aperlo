@@ -71,6 +71,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':templateId',
+                    parentNavigatorKey: rootNavigatorKey,
                     builder: (context, state) => TemplatePreviewScreen(
                       templateId: state.pathParameters['templateId']!,
                       preselectedCollectionId: state.extra as String?,
