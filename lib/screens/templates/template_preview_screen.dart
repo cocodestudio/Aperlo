@@ -29,7 +29,7 @@ extension _IterableExt<T> on Iterable<T> {
   }
 }
 
-final _templateDetailProvider = FutureProvider.autoDispose.family<Template?, String>((ref, id) async {
+final _templateDetailProvider = FutureProvider.family<Template?, String>((ref, id) async {
   try {
     // 1. Check if template is already loaded in templates list
     final allLoaded = ref.read(templatesProvider(null)).valueOrNull ?? [];
