@@ -1064,7 +1064,7 @@ class _ShapeLayer extends StatelessWidget {
           width: width,
           height: height,
           child: CustomPaint(
-            painter: _RingPainter(color: color, strokeWidth: strokeW),
+            painter: _RingPainter(color: color, gradient: gradient, strokeWidth: strokeW),
           ),
         );
         break;
@@ -1134,7 +1134,7 @@ class _ShapeLayer extends StatelessWidget {
           width: width,
           height: height,
           child: CustomPaint(
-            painter: _DiamondPainter(color: color),
+            painter: _DiamondPainter(color: color, gradient: gradient),
           ),
         );
         break;
@@ -1144,7 +1144,7 @@ class _ShapeLayer extends StatelessWidget {
           width: width,
           height: height,
           child: CustomPaint(
-            painter: _HeartPainter(color: color),
+            painter: _HeartPainter(color: color, gradient: gradient),
           ),
         );
         break;
@@ -1154,7 +1154,7 @@ class _ShapeLayer extends StatelessWidget {
           width: width,
           height: height,
           child: CustomPaint(
-            painter: _CrossPainter(color: color),
+            painter: _CrossPainter(color: color, gradient: gradient),
           ),
         );
         break;
@@ -1183,7 +1183,7 @@ class _ShapeLayer extends StatelessWidget {
           width: width,
           height: height,
           child: CustomPaint(
-            painter: _BlobPainter(color: color),
+            painter: _BlobPainter(color: color, gradient: gradient),
           ),
         );
         break;
@@ -1212,21 +1212,24 @@ class _ShapeLayer extends StatelessWidget {
 // ── Custom painters ────────────────────────────────────────────────────────
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.color, required this.strokeWidth});
+  _RingPainter({required this.color, this.gradient, required this.strokeWidth});
   final Color color;
+  final Gradient? gradient;
   final double strokeWidth;
   @override
   void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(
+        strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth,
+        size.height - strokeWidth);
     final paint = Paint()
-      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
-    canvas.drawOval(
-      Rect.fromLTWH(
-          strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth,
-          size.height - strokeWidth),
-      paint,
-    );
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
+    canvas.drawOval(rect, paint);
   }
 
   @override
@@ -1343,8 +1346,9 @@ class _DiagonalSplitPainter extends CustomPainter {
 }
 
 class _BlobPainter extends CustomPainter {
-  _BlobPainter({required this.color});
+  _BlobPainter({required this.color, this.gradient});
   final Color color;
+  final Gradient? gradient;
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
@@ -1367,7 +1371,13 @@ class _BlobPainter extends CustomPainter {
       cx, cy - size.height * 0.42,
     );
     path.close();
-    canvas.drawPath(path, Paint()..color = color);
+    final paint = Paint();
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
+    canvas.drawPath(path, paint);
   }
 
   @override
@@ -1990,11 +2000,17 @@ class _Positioner extends StatelessWidget {
 
 class _DiamondPainter extends CustomPainter {
   final Color color;
-  _DiamondPainter({required this.color});
+  final Gradient? gradient;
+  _DiamondPainter({required this.color, this.gradient});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
+    final paint = Paint();
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
     final path = Path();
     path.moveTo(size.width / 2, 0);
     path.lineTo(size.width, size.height / 2);
@@ -2005,16 +2021,22 @@ class _DiamondPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DiamondPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _DiamondPainter oldDelegate) => oldDelegate.color != color || oldDelegate.gradient != gradient;
 }
 
 class _HeartPainter extends CustomPainter {
   final Color color;
-  _HeartPainter({required this.color});
+  final Gradient? gradient;
+  _HeartPainter({required this.color, this.gradient});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
+    final paint = Paint();
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
     final width = size.width;
     final height = size.height;
     final path = Path();
@@ -2028,16 +2050,22 @@ class _HeartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _HeartPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _HeartPainter oldDelegate) => oldDelegate.color != color || oldDelegate.gradient != gradient;
 }
 
 class _CrossPainter extends CustomPainter {
   final Color color;
-  _CrossPainter({required this.color});
+  final Gradient? gradient;
+  _CrossPainter({required this.color, this.gradient});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
+    final paint = Paint();
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
     final w = size.width;
     final h = size.height;
     final p = w * 0.35; // proportion of thickness
@@ -2059,5 +2087,5 @@ class _CrossPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CrossPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _CrossPainter oldDelegate) => oldDelegate.color != color || oldDelegate.gradient != gradient;
 }
