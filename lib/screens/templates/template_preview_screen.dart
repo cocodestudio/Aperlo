@@ -48,56 +48,34 @@ class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          templateAsync.when(
-            data: (template) => template == null
-                ? const EmptyState(
-                    headline: 'Template not found',
-                    description: 'The template you requested is no longer available or was removed.',
-                    icon: LucideIcons.fileQuestion,
-                  )
-                : _TemplatePreviewBody(
-                    template: template,
-                    preselectedCollectionId: widget.preselectedCollectionId,
-                    onTemplateSelected: (id) => setState(() => _currentId = id),
-                  ),
-            loading: () => const Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
-              ),
-            ),
-            error: (e, _) => ErrorState(
-              headline: 'Failed to load template',
-              description: 'We couldn\'t load the template details. Please try again.',
-              onRetry: () => ref.invalidate(_templateDetailProvider(_currentId)),
-            ),
-          ),
-          
-          // ── Top Navigation Bar ─────────────────────────────────────────────
-          Positioned(
-            top: topPad + AppSpacing.s12,
-            left: AppSpacing.s16,
-            right: AppSpacing.s16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _GlassIconButton(
-                  icon: LucideIcons.arrowLeft,
-                  onTap: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go('/home');
-                    }
-                  },
+      body: SafeArea(
+        top: false,
+        child: templateAsync.when(
+          data: (template) => template == null
+              ? const EmptyState(
+                  headline: 'Template not found',
+                  description: 'The template you requested is no longer available or was removed.',
+                  icon: LucideIcons.fileQuestion,
+                )
+              : _TemplatePreviewBody(
+                  template: template,
+                  preselectedCollectionId: widget.preselectedCollectionId,
+                  topPad: topPad,
+                  onTemplateSelected: (id) => setState(() => _currentId = id),
                 ),
-              ],
+          loading: () => const Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
             ),
           ),
-        ],
+          error: (e, _) => ErrorState(
+            headline: 'Failed to load template',
+            description: 'We couldn\'t load the template details. Please try again.',
+            onRetry: () => ref.invalidate(_templateDetailProvider(_currentId)),
+          ),
+        ),
       ),
     );
   }
@@ -107,54 +85,19 @@ final _templateDetailProvider = FutureProvider.family<Template?, String>((ref, i
   return ref.watch(firestoreServiceProvider).getTemplate(id);
 });
 
-// ── Glass Icon Button ────────────────────────────────────────────────────────
-
-class _GlassIconButton extends StatefulWidget {
-  const _GlassIconButton({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  State<_GlassIconButton> createState() => _GlassIconButtonState();
-}
-
-class _GlassIconButtonState extends State<_GlassIconButton> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.35),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-          child: Icon(widget.icon, color: Colors.white, size: 20),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Template Preview Body ────────────────────────────────────────────────────
 
 class _TemplatePreviewBody extends ConsumerStatefulWidget {
-  const _TemplatePreviewBody({required this.template, this.preselectedCollectionId, required this.onTemplateSelected});
+  const _TemplatePreviewBody({
+    required this.template,
+    this.preselectedCollectionId,
+    required this.topPad,
+    required this.onTemplateSelected,
+  });
+
   final Template template;
   final String? preselectedCollectionId;
+  final double topPad;
   final void Function(String id) onTemplateSelected;
 
   @override
@@ -280,239 +223,625 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
     );
   }
 
+  void _openFullscreenViewer() {
+    if (widget.template.thumbnailUrl.isEmpty) return;
+    HapticFeedback.selectionClick();
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black.withValues(alpha: 0.92),
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: Hero(
+                  tag: 'template_thumb_${widget.template.id}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AdaptiveImage(
+                      imageUrl: widget.template.thumbnailUrl,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(ctx).padding.top + 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.x, color: Colors.white, size: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final template = widget.template;
     final size = MediaQuery.of(context).size;
-    final topPad = MediaQuery.of(context).padding.top;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    // Template thumbnails are portrait (9:16). We give the image area a fixed
-    // height based on the screen width so the full image fits without cropping.
-    final imageAreaHeight = size.width * (16 / 9);
-    // Cap it so we always leave room for the handle + title on smaller screens
-    final clampedImageHeight = imageAreaHeight.clamp(0.0, size.height * 0.72);
+    // Showcase hero mockup dimensions (bounded portrait aspect)
+    final heroHeight = (size.height * 0.44).clamp(280.0, 420.0);
+    final heroWidth = heroHeight * (9.0 / 16.0);
 
-    return CustomScrollView(
-      physics: const ClampingScrollPhysics(),
-      slivers: [
-        // ── Full-visible thumbnail area ────────────────────────────────────
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: clampedImageHeight,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Subtle muted background behind the image
-                Container(color: AppColors.surfaceMuted),
-                if (template.thumbnailUrl.isNotEmpty)
-                  AdaptiveImage(
-                    imageUrl: template.thumbnailUrl,
-                    fit: BoxFit.contain,
-                  )
-                else
-                  const Center(
-                    child: Icon(LucideIcons.layoutGrid, size: 80, color: AppColors.inkDisabled),
+    return Stack(
+      children: [
+        // ── Main Scrollable Page Content ─────────────────────────────────────
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s20,
+            widget.topPad + 60.0,
+            AppSpacing.s20,
+            bottomInset + 100.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── 1. Floating Hero Showcase Stage ────────────────────────────
+              Center(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted.withValues(alpha: 0.5),
+                    borderRadius: AppRadius.br20,
+                    border: Border.all(color: AppColors.borderSubtle, width: 1),
                   ),
+                  child: Column(
+                    children: [
+                      // Floating Canvas Card
+                      GestureDetector(
+                        onTap: _openFullscreenViewer,
+                        child: Hero(
+                          tag: 'template_thumb_${template.id}',
+                          child: Container(
+                            width: heroWidth,
+                            height: heroHeight,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: AppColors.borderSubtle,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(alpha: 0.08),
+                                  blurRadius: 30,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                if (template.thumbnailUrl.isNotEmpty)
+                                  AdaptiveImage(
+                                    imageUrl: template.thumbnailUrl,
+                                    fit: BoxFit.cover,
+                                  )
+                                else
+                                  Container(
+                                    color: AppColors.surfaceMuted,
+                                    child: const Center(
+                                      child: Icon(
+                                        LucideIcons.layoutGrid,
+                                        size: 48,
+                                        color: AppColors.inkDisabled,
+                                      ),
+                                    ),
+                                  ),
 
-                // Top gradient fade so nav buttons are readable
-                Positioned(
-                  top: 0, left: 0, right: 0,
-                  height: topPad + 80,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.45),
-                          Colors.transparent,
-                        ],
+                                // Pro Badge Top Right
+                                if (template.isPro)
+                                  const Positioned(
+                                    top: 10,
+                                    right: 10,
+                                    child: ProBadge(),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
+
+                      const SizedBox(height: 14),
+
+                      // Interactive Tap to Zoom Pill
+                      GestureDetector(
+                        onTap: _openFullscreenViewer,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: AppRadius.brFull,
+                            border: Border.all(color: AppColors.borderSubtle, width: 1),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(LucideIcons.zoomIn, size: 13, color: AppColors.inkMuted),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Tap to preview full canvas',
+                                style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.s24),
+
+              // ── 2. Template Title & Category Badges ─────────────────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          template.name,
+                          style: AppText.headline1().copyWith(
+                            fontSize: 22,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            CategoryChip(label: template.category, isSelected: true),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceMuted,
+                                borderRadius: AppRadius.brFull,
+                                border: Border.all(color: AppColors.borderSubtle),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    template.deviceType.name == 'tablet'
+                                        ? LucideIcons.tablet
+                                        : template.deviceType.name == 'desktop'
+                                            ? LucideIcons.monitor
+                                            : LucideIcons.smartphone,
+                                    size: 13,
+                                    color: AppColors.inkSecondary,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    template.deviceType.name == 'tablet'
+                                        ? 'Tablet'
+                                        : template.deviceType.name == 'desktop'
+                                            ? 'Desktop'
+                                            : 'Phone (9:16)',
+                                    style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (template.totalUses > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentTint,
+                                  borderRadius: AppRadius.brFull,
+                                  border: Border.all(
+                                    color: AppColors.accent.withValues(alpha: 0.25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(LucideIcons.flame, size: 13, color: AppColors.accent),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${template.totalUses} uses',
+                                      style: AppText.labelSmall(color: AppColors.accent).copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpacing.s16),
+
+              // ── 3. Description ─────────────────────────────────────────────
+              if (template.description.isNotEmpty) ...[
+                Text(
+                  template.description,
+                  style: AppText.bodyDefault(color: AppColors.inkSecondary).copyWith(
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s20),
+              ],
+
+              // ── 4. Specs Bento Grid ─────────────────────────────────────────
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 2.3,
+                children: [
+                  _SpecCard(
+                    icon: LucideIcons.smartphone,
+                    label: 'Format',
+                    value: '9:16 Portrait',
+                  ),
+                  _SpecCard(
+                    icon: LucideIcons.type,
+                    label: 'Typography',
+                    value: '${template.headlineFont} • ${template.subheadlineFont}',
+                  ),
+                  _SpecCard(
+                    icon: LucideIcons.images,
+                    label: 'Screenshots',
+                    value: '${template.screenshotSlots} Slot${template.screenshotSlots > 1 ? 's' : ''}',
+                  ),
+                  _SpecCard(
+                    icon: LucideIcons.sparkles,
+                    label: 'Export Quality',
+                    value: '4K Ultra HD',
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpacing.s24),
+
+              // ── 5. More Like This ──────────────────────────────────────────
+              Row(
+                children: [
+                  Container(
+                    width: 3.5,
+                    height: 16,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Text('More in ${template.category}', style: AppText.headline3()),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s12),
+
+              SizedBox(
+                height: 170,
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final suggestedAsync = ref.watch(templatesProvider(template.category));
+                    return suggestedAsync.when(
+                      data: (templates) {
+                        final suggested = templates.where((t) => t.id != template.id).take(6).toList();
+                        if (suggested.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'No other templates in this category.',
+                              style: AppText.bodySmall(color: AppColors.inkMuted),
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: suggested.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
+                          itemBuilder: (context, i) {
+                            final t = suggested[i];
+                            return GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                widget.onTemplateSelected(t.id);
+                              },
+                              child: Container(
+                                width: 105,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: AppRadius.br12,
+                                  border: Border.all(color: AppColors.borderSubtle),
+                                  boxShadow: AppShadows.subtle,
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    if (t.thumbnailUrl.isNotEmpty)
+                                      AdaptiveImage(imageUrl: t.thumbnailUrl, fit: BoxFit.cover)
+                                    else
+                                      Container(
+                                        color: AppColors.surfaceMuted,
+                                        child: const Center(
+                                          child: Icon(LucideIcons.layoutGrid, size: 24, color: AppColors.inkDisabled),
+                                        ),
+                                      ),
+                                    if (t.isPro)
+                                      const Positioned(top: 6, right: 6, child: ProBadge()),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                        ),
+                      ),
+                      error: (_, _) => const SizedBox(),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Top Header Navigation Bar ────────────────────────────────────────
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.s16,
+              widget.topPad + AppSpacing.s8,
+              AppSpacing.s16,
+              AppSpacing.s8,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background.withValues(alpha: 0.94),
+              border: const Border(
+                bottom: BorderSide(color: AppColors.borderSubtle, width: 0.8),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _HeaderCircleButton(
+                  icon: LucideIcons.arrowLeft,
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/home');
+                    }
+                  },
+                ),
+                Text(
+                  'Template Details',
+                  style: AppText.headline3().copyWith(fontSize: 16),
+                ),
+                _HeaderCircleButton(
+                  icon: LucideIcons.maximize2,
+                  onTap: _openFullscreenViewer,
                 ),
               ],
             ),
           ),
         ),
 
-        // ── Info + actions panel ───────────────────────────────────────────
-        SliverToBoxAdapter(
+        // ── Sticky Floating Bottom Action Dock ───────────────────────────────
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
           child: Container(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.s20,
+              12,
+              AppSpacing.s20,
+              bottomInset + 12,
+            ),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+              color: AppColors.surface.withValues(alpha: 0.95),
+              border: const Border(
+                top: BorderSide(color: AppColors.borderSubtle, width: 1),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 16,
                   offset: const Offset(0, -4),
                 ),
               ],
             ),
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.s24,
-              AppSpacing.s20,
-              AppSpacing.s24,
-              MediaQuery.of(context).padding.bottom + AppSpacing.s24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Drag handle (visual only — the page itself is scrollable)
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: AppSpacing.s20),
-                    decoration: BoxDecoration(
-                      color: AppColors.borderDefault,
-                      borderRadius: AppRadius.brFull,
-                    ),
-                  ),
-                ),
-
-                // Title row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(template.name, style: AppText.headline1()),
-                          const SizedBox(height: AppSpacing.s8),
-                          Row(
-                            children: [
-                              CategoryChip(label: template.category, isSelected: false),
-                              const SizedBox(width: 8),
-                              CategoryChip(
-                                label: template.deviceType.name == 'tablet'
-                                    ? 'Tablet'
-                                    : template.deviceType.name == 'desktop'
-                                        ? 'Desktop'
-                                        : 'Phone',
-                                isSelected: false,
-                              ),
-                            ],
-                          ),
-                        ],
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: template.isPro
+                    ? AppButton(
+                        label: 'Unlock with PRO',
+                        onPressed: () => AppToast.show(
+                          context,
+                          message: 'PRO feature coming soon',
+                          type: AppToastType.info,
+                        ),
+                        leadingIcon: const Icon(LucideIcons.lock, size: 18),
+                        isFullWidth: true,
+                      )
+                    : AppButton(
+                        label: 'Use template',
+                        onPressed: _loading ? null : _useTemplate,
+                        isLoading: _loading,
+                        leadingIcon: const Icon(LucideIcons.sparkles, size: 18),
+                        isFullWidth: true,
                       ),
-                    ),
-                    if (template.isPro)
-                      const Padding(
-                        padding: EdgeInsets.only(left: AppSpacing.s12),
-                        child: ProBadge(),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.s20),
-                Text(
-                  template.description,
-                  style: AppText.bodyDefault(color: AppColors.inkSecondary),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                const SizedBox(height: AppSpacing.s24),
-
-                if (template.isPro)
-                  AppButton(
-                    label: 'Unlock with PRO',
-                    onPressed: () => AppToast.show(context, message: 'PRO feature coming soon', type: AppToastType.info),
-                    leadingIcon: const Icon(LucideIcons.lock, size: 20),
-                    isFullWidth: true,
-                  )
-                else
-                  AppButton(
-                    label: 'Use template',
-                    onPressed: _loading ? null : _useTemplate,
-                    isLoading: _loading,
-                    isFullWidth: true,
-                  ),
-
-                const SizedBox(height: AppSpacing.s24),
-
-                // More like this
-                Row(
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 16,
-                      margin: const EdgeInsets.only(right: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Text('More like this', style: AppText.headline3()),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.s16),
-
-                SizedBox(
-                  height: 180 * 16 / 9,
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final suggestedAsync = ref.watch(templatesProvider(template.category));
-                      return suggestedAsync.when(
-                        data: (templates) {
-                          final suggested = templates.where((t) => t.id != template.id).take(5).toList();
-                          if (suggested.isEmpty) {
-                            return Text('No suggestions found.', style: AppText.bodySmall(color: AppColors.inkMuted));
-                          }
-                          return ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            physics: const ClampingScrollPhysics(),
-                            itemCount: suggested.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 12),
-                            itemBuilder: (context, i) {
-                              final t = suggested[i];
-                              return GestureDetector(
-                                onTap: () => widget.onTemplateSelected(t.id),
-                                child: Container(
-                                  width: 180,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface,
-                                    borderRadius: AppRadius.br12,
-                                    border: Border.all(color: AppColors.borderSubtle),
-                                    boxShadow: AppShadows.card,
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      if (t.thumbnailUrl.isNotEmpty)
-                                        AdaptiveImage(imageUrl: t.thumbnailUrl, fit: BoxFit.cover)
-                                      else
-                                        Container(
-                                          color: AppColors.surfaceMuted,
-                                          child: const Center(
-                                            child: Icon(LucideIcons.layoutGrid, size: 28, color: AppColors.inkDisabled),
-                                          ),
-                                        ),
-                                      if (t.isPro)
-                                        const Positioned(top: 8, right: 8, child: ProBadge()),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
-                        error: (_, _) => const SizedBox(),
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Spec Bento Card ──────────────────────────────────────────────────────────
+
+class _SpecCard extends StatelessWidget {
+  const _SpecCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.br12,
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.accentTint,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: AppColors.accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  value,
+                  style: AppText.labelLarge().copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Header Circle Button ─────────────────────────────────────────────────────
+
+class _HeaderCircleButton extends StatefulWidget {
+  const _HeaderCircleButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_HeaderCircleButton> createState() => _HeaderCircleButtonState();
+}
+
+class _HeaderCircleButtonState extends State<_HeaderCircleButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _pressed ? 0.90 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.borderSubtle, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Icon(widget.icon, color: AppColors.inkPrimary, size: 18),
+        ),
+      ),
     );
   }
 }
@@ -537,176 +866,176 @@ class _CollectionPickerSheet extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Drag Handle Pill ─────────────────────────────────────────
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.borderStrong,
-                    borderRadius: BorderRadius.circular(2),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Drag Handle Pill ─────────────────────────────────────────
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.borderStrong,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // ── Header Row ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentTint,
+                      borderRadius: AppRadius.br10,
+                      border: Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      LucideIcons.folderPlus,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
                   ),
-                ),
-              ),
-
-              // ── Header Row ───────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentTint,
-                        borderRadius: AppRadius.br10,
-                        border: Border.all(
-                          color: AppColors.accent.withValues(alpha: 0.25),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        LucideIcons.folderPlus,
-                        size: 18,
-                        color: AppColors.accent,
-                      ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Add to collection', style: AppText.headline2().copyWith(fontSize: 17)),
+                        const SizedBox(height: 2),
+                        Text('Select destination collection', style: AppText.bodySmall(color: AppColors.inkMuted)),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Add to collection', style: AppText.headline2().copyWith(fontSize: 17)),
-                          const SizedBox(height: 2),
-                          Text('Select destination collection', style: AppText.bodySmall(color: AppColors.inkMuted)),
-                        ],
-                      ),
-                    ),
-                    if (onCreateNew != null)
-                      Material(
-                        color: AppColors.accentTint,
+                  ),
+                  if (onCreateNew != null)
+                    Material(
+                      color: AppColors.accentTint,
+                      borderRadius: AppRadius.brFull,
+                      child: InkWell(
                         borderRadius: AppRadius.brFull,
-                        child: InkWell(
-                          borderRadius: AppRadius.brFull,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            onCreateNew!();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(LucideIcons.plus, size: 14, color: AppColors.accent),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'New',
-                                  style: AppText.labelDefault(color: AppColors.accent).copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          onCreateNew!();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(LucideIcons.plus, size: 14, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                'New',
+                                style: AppText.labelDefault(color: AppColors.accent).copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
+            ),
 
-              const Divider(color: AppColors.borderSubtle, height: 1),
+            const Divider(color: AppColors.borderSubtle, height: 1),
 
-              // ── Collections List ─────────────────────────────────────────
-              Flexible(
-                child: collections.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                        child: Center(
-                          child: Text(
-                            'No collections yet. Tap "+ New" above to create one.',
-                            style: AppText.bodyLarge(color: AppColors.inkMuted),
-                            textAlign: TextAlign.center,
-                          ),
+            // ── Collections List ─────────────────────────────────────────
+            Flexible(
+              child: collections.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                      child: Center(
+                        child: Text(
+                          'No collections yet. Tap "+ New" above to create one.',
+                          style: AppText.bodyLarge(color: AppColors.inkMuted),
+                          textAlign: TextAlign.center,
                         ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                        itemCount: collections.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 8),
-                        itemBuilder: (context, i) {
-                          final c = collections[i];
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceMuted.withValues(alpha: 0.45),
-                              borderRadius: AppRadius.br12,
-                              border: Border.all(color: AppColors.borderSubtle),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                splashColor: AppColors.accent.withValues(alpha: 0.12),
-                                highlightColor: AppColors.accent.withValues(alpha: 0.05),
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  Navigator.pop(context, c.id);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 36,
-                                        height: 36,
-                                        decoration: BoxDecoration(
-                                          color: c.color.withValues(alpha: 0.14),
-                                          borderRadius: AppRadius.br10,
-                                          border: Border.all(
-                                            color: c.color.withValues(alpha: 0.25),
-                                            width: 1,
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      itemCount: collections.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 8),
+                      itemBuilder: (context, i) {
+                        final c = collections[i];
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted.withValues(alpha: 0.45),
+                            borderRadius: AppRadius.br12,
+                            border: Border.all(color: AppColors.borderSubtle),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              splashColor: AppColors.accent.withValues(alpha: 0.12),
+                              highlightColor: AppColors.accent.withValues(alpha: 0.05),
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.pop(context, c.id);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: c.color.withValues(alpha: 0.14),
+                                        borderRadius: AppRadius.br10,
+                                        border: Border.all(
+                                          color: c.color.withValues(alpha: 0.25),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Icon(LucideIcons.folderOpen, color: c.color, size: 18),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            c.name,
+                                            style: AppText.labelLarge().copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
                                           ),
-                                        ),
-                                        child: Icon(LucideIcons.folderOpen, color: c.color, size: 18),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${c.screenshotCount} screenshot${c.screenshotCount != 1 ? 's' : ''}',
+                                            style: AppText.bodySmall(color: AppColors.inkMuted).copyWith(fontSize: 11),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              c.name,
-                                              style: AppText.labelLarge().copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '${c.screenshotCount} screenshot${c.screenshotCount != 1 ? 's' : ''}',
-                                              style: AppText.bodySmall(color: AppColors.inkMuted).copyWith(fontSize: 11),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Icon(LucideIcons.chevronRight, size: 15, color: AppColors.inkDisabled),
-                                    ],
-                                  ),
+                                    ),
+                                    const Icon(LucideIcons.chevronRight, size: 15, color: AppColors.inkDisabled),
+                                  ],
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 }
