@@ -342,9 +342,11 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
     final heroWidth = (heroHeight * aspectRatio).clamp(160.0, size.width - 64.0);
 
     // Typography calculation
-    final hFont = template.headlineFont.isNotEmpty ? template.headlineFont : 'Syne';
-    final subFont = template.subheadlineFont.isNotEmpty ? template.subheadlineFont : 'DM Sans';
-    final typographyValue = hFont == subFont ? hFont : '$hFont + $subFont';
+    final usedFonts = template.usedFonts;
+    final typographyValue = template.typographyDisplay;
+    final typographySub = usedFonts.length == 1
+        ? 'Google Font'
+        : '${usedFonts.length} Google Fonts';
 
     // Screenshots slot calculation
     final layoutDeviceCount = template.layout.where((l) {
@@ -602,7 +604,7 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
                   icon: LucideIcons.type,
                   label: 'Typography',
                   value: typographyValue,
-                  subtitle: 'Google Fonts',
+                  subtitle: typographySub,
                 ),
                 _SpecCard(
                   icon: LucideIcons.images,

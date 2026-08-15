@@ -46,6 +46,42 @@ class Template {
     return '${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  /// Extracts all distinct font families used in this template (from metadata & layer nodes)
+  List<String> get usedFonts {
+    final fonts = <String>{};
+
+    // 1. Scan text, badge, and feature layers in layout
+    for (final layer in layout) {
+      final font = (layer['font'] ?? layer['font_family'] ?? layer['fontFamily']) as String?;
+      if (font != null && font.trim().isNotEmpty) {
+        fonts.add(font.trim());
+      }
+    }
+
+    // 2. Scan metadata headline and subheadline fonts
+    if (headlineFont.trim().isNotEmpty) {
+      fonts.add(headlineFont.trim());
+    }
+    if (subheadlineFont.trim().isNotEmpty) {
+      fonts.add(subheadlineFont.trim());
+    }
+
+    if (fonts.isEmpty) {
+      return const ['Outfit'];
+    }
+
+    return fonts.toList();
+  }
+
+  /// Formatted string of all font names used in the template
+  String get typographyDisplay {
+    final list = usedFonts;
+    if (list.isEmpty) return 'Google Fonts';
+    if (list.length == 1) return list.first;
+    if (list.length == 2) return '${list[0]} + ${list[1]}';
+    return list.join(' • ');
+  }
+
   Template copyWith({bool? isDownloaded, String? localPath}) => Template(
         id: id, name: name, category: category, thumbnailUrl: thumbnailUrl,
         isPro: isPro, isDownloaded: isDownloaded ?? this.isDownloaded,
@@ -132,8 +168,8 @@ class Template {
         description: map['description'] as String? ?? '',
         tags: List<String>.from(map['tags'] as List? ?? []),
         screenshotSlots: map['screenshotSlots'] as int? ?? 1,
-        headlineFont: map['headlineFont'] as String? ?? 'Syne',
-        subheadlineFont: map['subheadlineFont'] as String? ?? 'DM Sans',
+        headlineFont: map['headlineFont'] as String? ?? '',
+        subheadlineFont: map['subheadlineFont'] as String? ?? '',
         layout: (map['layout'] as List? ?? [])
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
