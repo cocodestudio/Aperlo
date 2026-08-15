@@ -57,19 +57,17 @@ class CollectionDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: (screenshotsAsync.valueOrNull ?? []).isEmpty
-          ? null
-          : Padding(
-              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
-              child: FloatingActionButton(
-                onPressed: () => context.go('/templates', extra: collectionId),
-                backgroundColor: AppColors.accent,
-                elevation: 4,
-                highlightElevation: 8,
-                shape: const CircleBorder(),
-                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
-              ),
-            ),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: getFloatingBottomNavFabClearance(context)),
+        child: FloatingActionButton(
+          onPressed: () => context.go('/templates', extra: collectionId),
+          backgroundColor: AppColors.accent,
+          elevation: 4,
+          highlightElevation: 8,
+          shape: const CircleBorder(),
+          child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+        ),
+      ),
       body: screenshotsAsync.when(
         data: (shots) => shots.isEmpty
             ? EmptyState(

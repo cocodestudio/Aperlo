@@ -55,19 +55,17 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      floatingActionButton: (collectionsAsync.valueOrNull ?? []).isEmpty
-          ? null
-          : Padding(
-              padding: EdgeInsets.only(bottom: getFloatingBottomNavClearance(context)),
-              child: FloatingActionButton(
-                onPressed: () => _showNewCollectionDialog(context),
-                shape: const CircleBorder(),
-                backgroundColor: AppColors.accent,
-                elevation: 4,
-                highlightElevation: 8,
-                child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
-              ),
-            ),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: getFloatingBottomNavFabClearance(context)),
+        child: FloatingActionButton(
+          onPressed: () => _showNewCollectionDialog(context),
+          shape: const CircleBorder(),
+          backgroundColor: AppColors.accent,
+          elevation: 4,
+          highlightElevation: 8,
+          child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
+        ),
+      ),
       body: Column(
         children: [
           // ── Search & Filters ───────────────────────────────────────────────

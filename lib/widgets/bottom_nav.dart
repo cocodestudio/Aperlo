@@ -11,12 +11,17 @@ import '../core/theme/app_text_styles.dart';
 const double kFloatingBottomNavHeight = 60.0;
 const double kFloatingBottomNavMargin = 12.0;
 
-/// Returns the dynamic bottom clearance needed so that Floating Action Buttons (FABs)
-/// and scrolling lists comfortably clear the floating bottom navigation bar and
-/// the phone's system navigation bar on all devices.
+/// Returns the dynamic bottom clearance needed for scrolling lists and content
+/// to comfortably scroll past the floating bottom navigation bar.
 double getFloatingBottomNavClearance(BuildContext context) {
   final bottomInset = MediaQuery.of(context).padding.bottom;
   return kFloatingBottomNavHeight + kFloatingBottomNavMargin + bottomInset + 16.0;
+}
+
+/// Returns the bottom clearance needed specifically for Scaffold Floating Action Buttons (FABs)
+/// so they float cleanly with an exact 16px gap above the floating bottom navigation bar.
+double getFloatingBottomNavFabClearance(BuildContext context) {
+  return kFloatingBottomNavHeight + kFloatingBottomNavMargin;
 }
 
 const _tabs = [
