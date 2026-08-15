@@ -89,6 +89,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':collectionId',
+                    parentNavigatorKey: rootNavigatorKey,
                     builder: (context, state) => CollectionDetailScreen(
                       collectionId: state.pathParameters['collectionId']!,
                     ),
