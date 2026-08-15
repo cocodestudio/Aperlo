@@ -16,14 +16,19 @@ class FCMService {
 
   static Future<void> init() async {
     // Request permissions
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    try {
+      await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    } catch (_) {}
 
-    // Subscribe to topics
-    await _messaging.subscribeToTopic('all_users');
+    // Subscribe to topics in background with resilient auto-retry
+    _subscribeToTopics();
+    _messaging.onTokenRefresh.listen((_) {
+      _subscribeToTopics();
+    });
 
     // Initialize local notifications
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -100,6 +105,18 @@ class FCMService {
       final context = rootNavigatorKey.currentContext;
       if (context != null) {
         context.go('/templates/$templateId');
+      }
+    }
+  }
+
+  static Future<void> _subscribeToTopics({int retryCount = 0}) async {
+    try {
+      await _messaging.subscribeToTopic('all_users');
+    } catch (_) {
+      if (retryCount < 5) {
+        Future.delayed(Duration(seconds: 3 * (retryCount + 1)), () {
+          _subscribeToTopics(retryCount: retryCount + 1);
+        });
       }
     }
   }
