@@ -56,9 +56,9 @@ class CollectionDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(left: AppSpacing.s8, bottom: AppSpacing.s8),
+        padding: const EdgeInsets.only(right: AppSpacing.s8, bottom: AppSpacing.s8),
         child: FloatingActionButton(
           onPressed: () => context.go('/templates', extra: collectionId),
           backgroundColor: AppColors.accent,
