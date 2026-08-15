@@ -1009,16 +1009,39 @@ class _ShapeLayer extends StatelessWidget {
     final shapeType =
         layer['shape_type'] as String? ?? layer['shape'] as String? ?? 'circle';
 
-    // Gradient fill for shapes
+    // Gradient fill for shapes (supports colors list, fill_type, angle, and begin/end)
     final gradList = layer['gradient_colors'] as List?;
-    final gradient = gradList != null && gradList.length >= 2
-        ? LinearGradient(
-            begin: _alignment(layer['gradient_begin'] as String?),
-            end: _alignment(
-                layer['gradient_end'] as String? ?? 'bottomRight'),
-            colors: gradList.map((c) => _color(c)).toList(),
-          )
-        : null;
+    final fillType = layer['fill_type'] as String?;
+    final isGrad = fillType == 'gradient' || (gradList != null && gradList.length >= 2);
+
+    LinearGradient? gradient;
+    if (isGrad) {
+      final colors = gradList != null && gradList.length >= 2
+          ? gradList.map((c) => _color(c)).toList()
+          : [
+              _color(layer['color'], const Color(0xFF1A6B4A)),
+              _color(layer['color_2'] ?? layer['color2'], const Color(0xFF2E9F6E)),
+            ];
+
+      if (layer['gradient_angle'] != null) {
+        final deg = _f(layer['gradient_angle'], 135.0);
+        final rad = (deg - 90.0) * (math.pi / 180.0);
+        final gx = math.cos(rad);
+        final gy = math.sin(rad);
+        gradient = LinearGradient(
+          begin: Alignment(-gx, -gy),
+          end: Alignment(gx, gy),
+          colors: colors,
+        );
+      } else {
+        gradient = LinearGradient(
+          begin: _alignment(layer['gradient_begin'] as String?),
+          end: _alignment(
+              layer['gradient_end'] as String? ?? 'bottomRight'),
+          colors: colors,
+        );
+      }
+    }
 
     Widget shape;
     switch (shapeType) {
@@ -1079,6 +1102,7 @@ class _ShapeLayer extends StatelessWidget {
           child: CustomPaint(
             painter: _ArcPainter(
               color: color,
+              gradient: gradient,
               strokeWidth: strokeW,
               startAngle: startAngle,
               sweepAngle: sweepAngle,
@@ -1111,6 +1135,7 @@ class _ShapeLayer extends StatelessWidget {
           child: CustomPaint(
             painter: _StarPainter(
               color: color,
+              gradient: gradient,
               points: points,
               innerRatio: innerRatio,
             ),
@@ -1162,16 +1187,32 @@ class _ShapeLayer extends StatelessWidget {
       case 'svg':
         final svgContent = layer['svg_content'] as String?;
         if (svgContent != null && svgContent.isNotEmpty) {
-          shape = SizedBox(
-            width: width,
-            height: height,
-            child: SvgPicture.string(
-              svgContent,
+          if (gradient != null) {
+            shape = SizedBox(
               width: width,
               height: height,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-            ),
-          );
+              child: ShaderMask(
+                shaderCallback: (bounds) => gradient!.createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: SvgPicture.string(
+                  svgContent,
+                  width: width,
+                  height: height,
+                ),
+              ),
+            );
+          } else {
+            shape = SizedBox(
+              width: width,
+              height: height,
+              child: SvgPicture.string(
+                svgContent,
+                width: width,
+                height: height,
+                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              ),
+            );
+          }
         } else {
           shape = SizedBox(width: width, height: height);
         }
@@ -1239,22 +1280,29 @@ class _RingPainter extends CustomPainter {
 class _ArcPainter extends CustomPainter {
   _ArcPainter({
     required this.color,
+    this.gradient,
     required this.strokeWidth,
     required this.startAngle,
     required this.sweepAngle,
   });
   final double strokeWidth, startAngle, sweepAngle;
   final Color color;
+  final Gradient? gradient;
   @override
   void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2,
+        size.width - strokeWidth, size.height - strokeWidth);
     final paint = Paint()
-      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
     canvas.drawArc(
-      Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2,
-          size.width - strokeWidth, size.height - strokeWidth),
+      rect,
       startAngle,
       sweepAngle,
       false,
@@ -1300,8 +1348,9 @@ class _PolygonPainter extends CustomPainter {
 
 class _StarPainter extends CustomPainter {
   _StarPainter(
-      {required this.color, required this.points, required this.innerRatio});
+      {required this.color, this.gradient, required this.points, required this.innerRatio});
   final Color color;
+  final Gradient? gradient;
   final int points;
   final double innerRatio;
   @override
@@ -1319,7 +1368,13 @@ class _StarPainter extends CustomPainter {
       i == 0 ? path.moveTo(px, py) : path.lineTo(px, py);
     }
     path.close();
-    canvas.drawPath(path, Paint()..color = color);
+    final paint = Paint();
+    if (gradient != null) {
+      paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    } else {
+      paint.color = color;
+    }
+    canvas.drawPath(path, paint);
   }
 
   @override
