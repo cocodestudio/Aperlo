@@ -1092,7 +1092,7 @@ class _ShapeLayer extends StatelessWidget {
     // Gradient fill for shapes (supports colors list, fill_type, angle, and begin/end)
     final gradList = layer['gradient_colors'] as List?;
     final fillType = layer['fill_type'] as String?;
-    final isGrad = fillType == 'gradient' || (gradList != null && gradList.length >= 2);
+    final isGrad = fillType == 'gradient' || (fillType != 'solid' && gradList != null && gradList.length >= 2);
 
     LinearGradient? gradient;
     if (isGrad) {

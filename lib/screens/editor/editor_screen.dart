@@ -1363,40 +1363,10 @@ class _FloatingPropertyDock extends StatelessWidget {
         }
 
       case 'appearance':
-        return Column(
-          children: [
-            PropertyColorPicker(
-              label: 'Color',
-              hexColor: l['color'] ?? '#1A6B4A',
-              onChanged: (v) { l['color'] = v; onUpdateLayer(l); },
-            ),
-            const SizedBox(height: 12),
-            PropertySlider(
-              label: 'Opacity',
-              value: (l['opacity'] ?? 1.0).toDouble(),
-              min: 0.0,
-              max: 1.0,
-              valueFormatter: (v) => '${(v * 100).toInt()}%',
-              onChanged: (v) { l['opacity'] = v; onUpdateLayer(l); },
-            ),
-            if (type == 'shape' || type == 'frosted_panel')
-              PropertySlider(
-                label: 'Border Radius',
-                value: (l['border_radius'] ?? 12.0).toDouble(),
-                min: 0.0,
-                max: 100.0,
-                onChanged: (v) { l['border_radius'] = v; onUpdateLayer(l); },
-              ),
-            if (type == 'frosted_panel')
-              PropertySlider(
-                label: 'Blur Amount',
-                value: (l['blur'] ?? 10.0).toDouble(),
-                min: 0.0,
-                max: 40.0,
-                valueFormatter: (v) => '${v.toInt()} px',
-                onChanged: (v) { l['blur'] = v; onUpdateLayer(l); },
-              ),
-          ],
+        return _ShapeAppearanceDockControlView(
+          layer: l,
+          type: type,
+          onUpdateLayer: onUpdateLayer,
         );
 
       case 'position':
@@ -1482,6 +1452,243 @@ class _FloatingPropertyDock extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ShapeAppearanceDockControlView extends StatefulWidget {
+  const _ShapeAppearanceDockControlView({
+    required this.layer,
+    required this.type,
+    required this.onUpdateLayer,
+  });
+
+  final Map<String, dynamic> layer;
+  final String type;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+
+  @override
+  State<_ShapeAppearanceDockControlView> createState() => _ShapeAppearanceDockControlViewState();
+}
+
+class _ShapeAppearanceDockControlViewState extends State<_ShapeAppearanceDockControlView> {
+  late int _tabIndex; // 0: Solid, 1: Gradient
+
+  @override
+  void initState() {
+    super.initState();
+    final l = widget.layer;
+    final fillType = l['fill_type'] as String?;
+    final gradList = l['gradient_colors'] as List?;
+    if (fillType == 'gradient' || (fillType != 'solid' && gradList != null && gradList.length >= 2)) {
+      _tabIndex = 1;
+    } else {
+      _tabIndex = 0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ShapeAppearanceDockControlView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final l = widget.layer;
+    final fillType = l['fill_type'] as String?;
+    final gradList = l['gradient_colors'] as List?;
+    if (fillType == 'gradient' || (fillType != 'solid' && gradList != null && gradList.length >= 2)) {
+      _tabIndex = 1;
+    } else {
+      _tabIndex = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = Map<String, dynamic>.from(widget.layer);
+    final type = widget.type;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (type == 'shape') ...[
+          TogglePillGroup(
+            options: const ['Solid', 'Gradient'],
+            selectedValue: _tabIndex == 0 ? 'Solid' : 'Gradient',
+            onChanged: (val) {
+              setState(() {
+                if (val == 'Solid') {
+                  _tabIndex = 0;
+                  l['fill_type'] = 'solid';
+                  l.remove('gradient_colors');
+                } else {
+                  _tabIndex = 1;
+                  l['fill_type'] = 'gradient';
+                  final c1 = l['color'] as String? ?? '#1A6B4A';
+                  final c2 = l['color_2'] as String? ?? l['color2'] as String? ?? '#2E9F6E';
+                  l['gradient_colors'] = [c1, c2];
+                  if (l['gradient_angle'] == null) {
+                    l['gradient_angle'] = 135.0;
+                  }
+                }
+                widget.onUpdateLayer(l);
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_tabIndex == 0 || type != 'shape') ...[
+          PropertyColorPicker(
+            label: type == 'shape' ? 'Fill Color' : 'Color',
+            hexColor: l['color'] as String? ?? '#1A6B4A',
+            onChanged: (v) {
+              l['color'] = v;
+              if (type == 'shape') {
+                l['fill_type'] = 'solid';
+                l.remove('gradient_colors');
+              }
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else ...[
+          PropertyColorPicker(
+            label: 'Start Color',
+            hexColor: ((l['gradient_colors'] as List?)?.isNotEmpty ?? false)
+                ? l['gradient_colors'][0] as String
+                : (l['color'] as String? ?? '#1A6B4A'),
+            onChanged: (c) {
+              l['fill_type'] = 'gradient';
+              final c2 = ((l['gradient_colors'] as List?) != null && (l['gradient_colors'] as List).length >= 2)
+                  ? l['gradient_colors'][1] as String
+                  : (l['color_2'] as String? ?? '#2E9F6E');
+              l['color'] = c;
+              l['gradient_colors'] = [c, c2];
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'End Color',
+            hexColor: ((l['gradient_colors'] as List?) != null && (l['gradient_colors'] as List).length >= 2)
+                ? l['gradient_colors'][1] as String
+                : (l['color_2'] as String? ?? '#2E9F6E'),
+            onChanged: (c) {
+              l['fill_type'] = 'gradient';
+              final c1 = ((l['gradient_colors'] as List?)?.isNotEmpty ?? false)
+                  ? l['gradient_colors'][0] as String
+                  : (l['color'] as String? ?? '#1A6B4A');
+              l['color_2'] = c;
+              l['gradient_colors'] = [c1, c];
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Gradient Angle',
+            value: (l['gradient_angle'] as num?)?.toDouble() ?? 135.0,
+            min: 0.0,
+            max: 360.0,
+            valueFormatter: (v) => '${v.toInt()}°',
+            onChanged: (v) {
+              l['fill_type'] = 'gradient';
+              l['gradient_angle'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+        const SizedBox(height: 12),
+        PropertySlider(
+          label: 'Opacity',
+          value: (l['opacity'] as num?)?.toDouble() ?? 1.0,
+          min: 0.0,
+          max: 1.0,
+          valueFormatter: (v) => '${(v * 100).toInt()}%',
+          onChanged: (v) {
+            l['opacity'] = v;
+            widget.onUpdateLayer(l);
+          },
+        ),
+        if (type == 'shape' && (l['shape_type'] == 'rounded_rect' || l['shape_type'] == 'rect' || l['shape_type'] == null)) ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Corner Radius',
+            value: (l['corner_radius'] as num?)?.toDouble() ?? (l['border_radius'] as num?)?.toDouble() ?? 16.0,
+            min: 0.0,
+            max: 100.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['corner_radius'] = v;
+              l['border_radius'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+        if (type == 'shape' && (l['shape_type'] == 'ring' || l['shape_type'] == 'arc')) ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stroke Width',
+            value: (l['stroke_width'] as num?)?.toDouble() ?? 8.0,
+            min: 1.0,
+            max: 30.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['stroke_width'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+        if (type == 'shape' && l['shape_type'] == 'polygon') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Sides',
+            value: (l['sides'] as num?)?.toDouble() ?? 6.0,
+            min: 3.0,
+            max: 12.0,
+            valueFormatter: (v) => '${v.toInt()}',
+            onChanged: (v) {
+              l['sides'] = v.toInt();
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+        if (type == 'shape' && l['shape_type'] == 'star') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Points',
+            value: (l['points'] as num?)?.toDouble() ?? 5.0,
+            min: 3.0,
+            max: 12.0,
+            valueFormatter: (v) => '${v.toInt()}',
+            onChanged: (v) {
+              l['points'] = v.toInt();
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+        if (type == 'frosted_panel') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Border Radius',
+            value: (l['border_radius'] as num?)?.toDouble() ?? 12.0,
+            min: 0.0,
+            max: 100.0,
+            onChanged: (v) {
+              l['border_radius'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Blur Amount',
+            value: (l['blur'] as num?)?.toDouble() ?? 10.0,
+            min: 0.0,
+            max: 40.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['blur'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+      ],
     );
   }
 }
