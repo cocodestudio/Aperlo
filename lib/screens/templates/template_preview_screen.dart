@@ -540,30 +540,6 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
                         runSpacing: 8,
                         children: [
                           CategoryChip(label: template.category, isSelected: true),
-                          if (template.totalUses > 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.accentTint,
-                                borderRadius: AppRadius.brFull,
-                                border: Border.all(
-                                  color: AppColors.accent.withValues(alpha: 0.25),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(LucideIcons.flame, size: 13, color: AppColors.accent),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${template.totalUses} uses',
-                                    style: AppText.labelSmall(color: AppColors.accent).copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
                     ],
