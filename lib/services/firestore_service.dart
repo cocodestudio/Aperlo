@@ -46,6 +46,10 @@ class FirestoreService {
   Future<Template?> getTemplate(String id) async {
     final doc = await _templates.doc(id).get();
     if (!doc.exists) return null;
-    return Template.fromMap(doc.data()!);
+    final data = doc.data()!;
+    if (!data.containsKey('id') || (data['id'] as String? ?? '').isEmpty) {
+      data['id'] = doc.id;
+    }
+    return Template.fromMap(data);
   }
 }

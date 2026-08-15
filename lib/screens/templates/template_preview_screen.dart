@@ -29,6 +29,21 @@ extension _IterableExt<T> on Iterable<T> {
   }
 }
 
+final _templateDetailProvider = FutureProvider.family<Template?, String>((ref, id) async {
+  try {
+    // 1. Check if template is already loaded in templates list
+    final allLoaded = ref.watch(templatesProvider(null)).valueOrNull ?? [];
+    final found = allLoaded.firstWhereOrNull((t) => t.id == id);
+    if (found != null) return found;
+
+    // 2. Fetch directly from Firestore service
+    return await ref.watch(firestoreServiceProvider).getTemplate(id);
+  } catch (e) {
+    debugPrint('Error loading template $id: $e');
+    return null;
+  }
+});
+
 class TemplatePreviewScreen extends ConsumerStatefulWidget {
   const TemplatePreviewScreen({super.key, required this.templateId, this.preselectedCollectionId});
   final String templateId;
@@ -41,70 +56,148 @@ class TemplatePreviewScreen extends ConsumerStatefulWidget {
 class _TemplatePreviewScreenState extends ConsumerState<TemplatePreviewScreen> {
   late String _currentId = widget.templateId;
 
+  void _openFullscreenViewer(String? imageUrl, String templateId) {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    HapticFeedback.selectionClick();
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black.withValues(alpha: 0.92),
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: Hero(
+                  tag: 'template_thumb_$templateId',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AdaptiveImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(ctx).padding.top + 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.x, color: Colors.white, size: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final templateAsync = ref.watch(_templateDetailProvider(_currentId));
-    final topPad = MediaQuery.of(context).padding.top;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        top: false,
-        child: templateAsync.when(
-          data: (template) => template == null
-              ? const EmptyState(
-                  headline: 'Template not found',
-                  description: 'The template you requested is no longer available or was removed.',
-                  icon: LucideIcons.fileQuestion,
-                )
-              : _TemplatePreviewBody(
-                  template: template,
-                  preselectedCollectionId: widget.preselectedCollectionId,
-                  topPad: topPad,
-                  onTemplateSelected: (id) => setState(() => _currentId = id),
-                ),
-          loading: () => const Center(
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
+    return templateAsync.when(
+      data: (template) {
+        if (template == null) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              backgroundColor: AppColors.background,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              leading: IconButton(
+                icon: const Icon(LucideIcons.arrowLeft, color: AppColors.inkPrimary),
+                onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+              ),
             ),
+            body: const EmptyState(
+              headline: 'Template not found',
+              description: 'The template you requested is no longer available or was removed.',
+              icon: LucideIcons.fileQuestion,
+            ),
+          );
+        }
+
+        return _TemplatePreviewView(
+          template: template,
+          preselectedCollectionId: widget.preselectedCollectionId,
+          onTemplateSelected: (id) => setState(() => _currentId = id),
+          onOpenFullscreen: () => _openFullscreenViewer(template.thumbnailUrl, template.id),
+        );
+      },
+      loading: () => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft, color: AppColors.inkPrimary),
+            onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           ),
-          error: (e, _) => ErrorState(
-            headline: 'Failed to load template',
-            description: 'We couldn\'t load the template details. Please try again.',
-            onRetry: () => ref.invalidate(_templateDetailProvider(_currentId)),
+        ),
+        body: const Center(
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accent),
           ),
+        ),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft, color: AppColors.inkPrimary),
+            onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+          ),
+        ),
+        body: ErrorState(
+          headline: 'Failed to load template',
+          description: 'We couldn\'t load the template details. Please try again.',
+          onRetry: () => ref.invalidate(_templateDetailProvider(_currentId)),
         ),
       ),
     );
   }
 }
 
-final _templateDetailProvider = FutureProvider.family<Template?, String>((ref, id) async {
-  return ref.watch(firestoreServiceProvider).getTemplate(id);
-});
+// ── Template Preview View ────────────────────────────────────────────────────
 
-// ── Template Preview Body ────────────────────────────────────────────────────
-
-class _TemplatePreviewBody extends ConsumerStatefulWidget {
-  const _TemplatePreviewBody({
+class _TemplatePreviewView extends ConsumerStatefulWidget {
+  const _TemplatePreviewView({
     required this.template,
     this.preselectedCollectionId,
-    required this.topPad,
     required this.onTemplateSelected,
+    required this.onOpenFullscreen,
   });
 
   final Template template;
   final String? preselectedCollectionId;
-  final double topPad;
   final void Function(String id) onTemplateSelected;
+  final VoidCallback onOpenFullscreen;
 
   @override
-  ConsumerState<_TemplatePreviewBody> createState() => _TemplatePreviewBodyState();
+  ConsumerState<_TemplatePreviewView> createState() => _TemplatePreviewViewState();
 }
 
-class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
+class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
   bool _loading = false;
 
   Future<void> _useTemplate() async {
@@ -223,513 +316,440 @@ class _TemplatePreviewBodyState extends ConsumerState<_TemplatePreviewBody> {
     );
   }
 
-  void _openFullscreenViewer() {
-    if (widget.template.thumbnailUrl.isEmpty) return;
-    HapticFeedback.selectionClick();
-    showDialog(
-      context: context,
-      useRootNavigator: true,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.black.withValues(alpha: 0.92),
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                minScale: 0.8,
-                maxScale: 4.0,
-                child: Hero(
-                  tag: 'template_thumb_${widget.template.id}',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AdaptiveImage(
-                      imageUrl: widget.template.thumbnailUrl,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: MediaQuery.of(ctx).padding.top + 16,
-              right: 16,
-              child: GestureDetector(
-                onTap: () => Navigator.of(ctx).pop(),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(LucideIcons.x, color: Colors.white, size: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final template = widget.template;
     final size = MediaQuery.of(context).size;
-    final bottomInset = MediaQuery.of(context).padding.bottom;
 
     // Showcase hero mockup dimensions (bounded portrait aspect)
-    final heroHeight = (size.height * 0.44).clamp(280.0, 420.0);
+    final heroHeight = (size.height * 0.44).clamp(260.0, 420.0);
     final heroWidth = heroHeight * (9.0 / 16.0);
 
-    return Stack(
-      children: [
-        // ── Main Scrollable Page Content ─────────────────────────────────────
-        SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(
-            AppSpacing.s20,
-            widget.topPad + 60.0,
-            AppSpacing.s20,
-            bottomInset + 100.0,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: _HeaderCircleButton(
+            icon: LucideIcons.arrowLeft,
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── 1. Floating Hero Showcase Stage ────────────────────────────
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted.withValues(alpha: 0.5),
-                    borderRadius: AppRadius.br20,
-                    border: Border.all(color: AppColors.borderSubtle, width: 1),
-                  ),
-                  child: Column(
-                    children: [
-                      // Floating Canvas Card
-                      GestureDetector(
-                        onTap: _openFullscreenViewer,
-                        child: Hero(
-                          tag: 'template_thumb_${template.id}',
-                          child: Container(
-                            width: heroWidth,
-                            height: heroHeight,
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: AppColors.borderSubtle,
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                                BoxShadow(
-                                  color: AppColors.accent.withValues(alpha: 0.08),
-                                  blurRadius: 30,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                if (template.thumbnailUrl.isNotEmpty)
-                                  AdaptiveImage(
-                                    imageUrl: template.thumbnailUrl,
-                                    fit: BoxFit.cover,
-                                  )
-                                else
-                                  Container(
-                                    color: AppColors.surfaceMuted,
-                                    child: const Center(
-                                      child: Icon(
-                                        LucideIcons.layoutGrid,
-                                        size: 48,
-                                        color: AppColors.inkDisabled,
-                                      ),
-                                    ),
-                                  ),
-
-                                // Pro Badge Top Right
-                                if (template.isPro)
-                                  const Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: ProBadge(),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // Interactive Tap to Zoom Pill
-                      GestureDetector(
-                        onTap: _openFullscreenViewer,
+        ),
+        title: Text(
+          'Template Details',
+          style: AppText.headline3().copyWith(fontSize: 16),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _HeaderCircleButton(
+              icon: LucideIcons.maximize2,
+              onTap: widget.onOpenFullscreen,
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s20,
+          AppSpacing.s8,
+          AppSpacing.s20,
+          AppSpacing.s24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 1. Floating Hero Showcase Stage ────────────────────────────
+            Center(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted.withValues(alpha: 0.5),
+                  borderRadius: AppRadius.br20,
+                  border: Border.all(color: AppColors.borderSubtle, width: 1),
+                ),
+                child: Column(
+                  children: [
+                    // Floating Canvas Card
+                    GestureDetector(
+                      onTap: widget.onOpenFullscreen,
+                      child: Hero(
+                        tag: 'template_thumb_${template.id}',
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                          width: heroWidth,
+                          height: heroHeight,
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: AppRadius.brFull,
-                            border: Border.all(color: AppColors.borderSubtle, width: 1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.borderSubtle,
+                              width: 1.5,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
+                              ),
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.08),
+                                blurRadius: 26,
+                                spreadRadius: 2,
                               ),
                             ],
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          clipBehavior: Clip.antiAlias,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              const Icon(LucideIcons.zoomIn, size: 13, color: AppColors.inkMuted),
-                              const SizedBox(width: 5),
-                              Text(
-                                'Tap to preview full canvas',
-                                style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
-                                  fontWeight: FontWeight.w600,
+                              if (template.thumbnailUrl.isNotEmpty)
+                                AdaptiveImage(
+                                  imageUrl: template.thumbnailUrl,
+                                  fit: BoxFit.cover,
+                                )
+                              else
+                                Container(
+                                  color: AppColors.surfaceMuted,
+                                  child: const Center(
+                                    child: Icon(
+                                      LucideIcons.layoutGrid,
+                                      size: 48,
+                                      color: AppColors.inkDisabled,
+                                    ),
+                                  ),
                                 ),
-                              ),
+
+                              // Pro Badge Top Right
+                              if (template.isPro)
+                                const Positioned(
+                                  top: 10,
+                                  right: 10,
+                                  child: ProBadge(),
+                                ),
                             ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Interactive Tap to Zoom Pill
+                    GestureDetector(
+                      onTap: widget.onOpenFullscreen,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: AppRadius.brFull,
+                          border: Border.all(color: AppColors.borderSubtle, width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(LucideIcons.zoomIn, size: 13, color: AppColors.inkMuted),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Tap to preview full canvas',
+                              style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-              const SizedBox(height: AppSpacing.s24),
+            const SizedBox(height: AppSpacing.s24),
 
-              // ── 2. Template Title & Category Badges ─────────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          template.name,
-                          style: AppText.headline1().copyWith(
-                            fontSize: 22,
-                            letterSpacing: -0.3,
-                          ),
+            // ── 2. Template Title & Category Badges ─────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        template.name,
+                        style: AppText.headline1().copyWith(
+                          fontSize: 22,
+                          letterSpacing: -0.3,
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            CategoryChip(label: template.category, isSelected: true),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          CategoryChip(label: template.category, isSelected: true),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceMuted,
+                              borderRadius: AppRadius.brFull,
+                              border: Border.all(color: AppColors.borderSubtle),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  template.deviceType.name == 'tablet'
+                                      ? LucideIcons.tablet
+                                      : template.deviceType.name == 'desktop'
+                                          ? LucideIcons.monitor
+                                          : LucideIcons.smartphone,
+                                  size: 13,
+                                  color: AppColors.inkSecondary,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  template.deviceType.name == 'tablet'
+                                      ? 'Tablet'
+                                      : template.deviceType.name == 'desktop'
+                                          ? 'Desktop'
+                                          : 'Phone (9:16)',
+                                  style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (template.totalUses > 0)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceMuted,
+                                color: AppColors.accentTint,
                                 borderRadius: AppRadius.brFull,
-                                border: Border.all(color: AppColors.borderSubtle),
+                                border: Border.all(
+                                  color: AppColors.accent.withValues(alpha: 0.25),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    template.deviceType.name == 'tablet'
-                                        ? LucideIcons.tablet
-                                        : template.deviceType.name == 'desktop'
-                                            ? LucideIcons.monitor
-                                            : LucideIcons.smartphone,
-                                    size: 13,
-                                    color: AppColors.inkSecondary,
-                                  ),
-                                  const SizedBox(width: 5),
+                                  const Icon(LucideIcons.flame, size: 13, color: AppColors.accent),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    template.deviceType.name == 'tablet'
-                                        ? 'Tablet'
-                                        : template.deviceType.name == 'desktop'
-                                            ? 'Desktop'
-                                            : 'Phone (9:16)',
-                                    style: AppText.labelSmall(color: AppColors.inkSecondary).copyWith(
-                                      fontWeight: FontWeight.w600,
+                                    '${template.totalUses} uses',
+                                    style: AppText.labelSmall(color: AppColors.accent).copyWith(
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            if (template.totalUses > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentTint,
-                                  borderRadius: AppRadius.brFull,
-                                  border: Border.all(
-                                    color: AppColors.accent.withValues(alpha: 0.25),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(LucideIcons.flame, size: 13, color: AppColors.accent),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${template.totalUses} uses',
-                                      style: AppText.labelSmall(color: AppColors.accent).copyWith(
-                                        fontWeight: FontWeight.w700,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.s16),
+
+            // ── 3. Description ─────────────────────────────────────────────
+            if (template.description.isNotEmpty) ...[
+              Text(
+                template.description,
+                style: AppText.bodyDefault(color: AppColors.inkSecondary).copyWith(
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s20),
+            ],
+
+            // ── 4. Specs Bento Grid ─────────────────────────────────────────
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.3,
+              children: [
+                _SpecCard(
+                  icon: LucideIcons.smartphone,
+                  label: 'Format',
+                  value: '9:16 Portrait',
+                ),
+                _SpecCard(
+                  icon: LucideIcons.type,
+                  label: 'Typography',
+                  value: '${template.headlineFont} • ${template.subheadlineFont}',
+                ),
+                _SpecCard(
+                  icon: LucideIcons.images,
+                  label: 'Screenshots',
+                  value: '${template.screenshotSlots} Slot${template.screenshotSlots > 1 ? 's' : ''}',
+                ),
+                _SpecCard(
+                  icon: LucideIcons.sparkles,
+                  label: 'Export Quality',
+                  value: '4K Ultra HD',
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.s24),
+
+            // ── 5. More Like This ──────────────────────────────────────────
+            Row(
+              children: [
+                Container(
+                  width: 3.5,
+                  height: 16,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text('More in ${template.category}', style: AppText.headline3()),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s12),
+
+            SizedBox(
+              height: 170,
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final suggestedAsync = ref.watch(templatesProvider(template.category));
+                  return suggestedAsync.when(
+                    data: (templates) {
+                      final suggested = templates.where((t) => t.id != template.id).take(6).toList();
+                      if (suggested.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No other templates in this category.',
+                            style: AppText.bodySmall(color: AppColors.inkMuted),
+                          ),
+                        );
+                      }
+                      return ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: suggested.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
+                        itemBuilder: (context, i) {
+                          final t = suggested[i];
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              widget.onTemplateSelected(t.id);
+                            },
+                            child: Container(
+                              width: 105,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: AppRadius.br12,
+                                border: Border.all(color: AppColors.borderSubtle),
+                                boxShadow: AppShadows.subtle,
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (t.thumbnailUrl.isNotEmpty)
+                                    AdaptiveImage(imageUrl: t.thumbnailUrl, fit: BoxFit.cover)
+                                  else
+                                    Container(
+                                      color: AppColors.surfaceMuted,
+                                      child: const Center(
+                                        child: Icon(LucideIcons.layoutGrid, size: 24, color: AppColors.inkDisabled),
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  if (t.isPro)
+                                    const Positioned(top: 6, right: 6, child: ProBadge()),
+                                ],
                               ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s16),
-
-              // ── 3. Description ─────────────────────────────────────────────
-              if (template.description.isNotEmpty) ...[
-                Text(
-                  template.description,
-                  style: AppText.bodyDefault(color: AppColors.inkSecondary).copyWith(
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s20),
-              ],
-
-              // ── 4. Specs Bento Grid ─────────────────────────────────────────
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 2.3,
-                children: [
-                  _SpecCard(
-                    icon: LucideIcons.smartphone,
-                    label: 'Format',
-                    value: '9:16 Portrait',
-                  ),
-                  _SpecCard(
-                    icon: LucideIcons.type,
-                    label: 'Typography',
-                    value: '${template.headlineFont} • ${template.subheadlineFont}',
-                  ),
-                  _SpecCard(
-                    icon: LucideIcons.images,
-                    label: 'Screenshots',
-                    value: '${template.screenshotSlots} Slot${template.screenshotSlots > 1 ? 's' : ''}',
-                  ),
-                  _SpecCard(
-                    icon: LucideIcons.sparkles,
-                    label: 'Export Quality',
-                    value: '4K Ultra HD',
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.s24),
-
-              // ── 5. More Like This ──────────────────────────────────────────
-              Row(
-                children: [
-                  Container(
-                    width: 3.5,
-                    height: 16,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Text('More in ${template.category}', style: AppText.headline3()),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s12),
-
-              SizedBox(
-                height: 170,
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final suggestedAsync = ref.watch(templatesProvider(template.category));
-                    return suggestedAsync.when(
-                      data: (templates) {
-                        final suggested = templates.where((t) => t.id != template.id).take(6).toList();
-                        if (suggested.isEmpty) {
-                          return Center(
-                            child: Text(
-                              'No other templates in this category.',
-                              style: AppText.bodySmall(color: AppColors.inkMuted),
                             ),
                           );
-                        }
-                        return ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: suggested.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 12),
-                          itemBuilder: (context, i) {
-                            final t = suggested[i];
-                            return GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                widget.onTemplateSelected(t.id);
-                              },
-                              child: Container(
-                                width: 105,
-                                decoration: BoxDecoration(
-                                  color: AppColors.surface,
-                                  borderRadius: AppRadius.br12,
-                                  border: Border.all(color: AppColors.borderSubtle),
-                                  boxShadow: AppShadows.subtle,
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    if (t.thumbnailUrl.isNotEmpty)
-                                      AdaptiveImage(imageUrl: t.thumbnailUrl, fit: BoxFit.cover)
-                                    else
-                                      Container(
-                                        color: AppColors.surfaceMuted,
-                                        child: const Center(
-                                          child: Icon(LucideIcons.layoutGrid, size: 24, color: AppColors.inkDisabled),
-                                        ),
-                                      ),
-                                    if (t.isPro)
-                                      const Positioned(top: 6, right: 6, child: ProBadge()),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      loading: () => const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
-                        ),
+                        },
+                      );
+                    },
+                    loading: () => const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
                       ),
-                      error: (_, _) => const SizedBox(),
-                    );
-                  },
-                ),
+                    ),
+                    error: (_, _) => const SizedBox(),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-
-        // ── Top Header Navigation Bar ────────────────────────────────────────
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.s16,
-              widget.topPad + AppSpacing.s8,
-              AppSpacing.s16,
-              AppSpacing.s8,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.background.withValues(alpha: 0.94),
-              border: const Border(
-                bottom: BorderSide(color: AppColors.borderSubtle, width: 0.8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _HeaderCircleButton(
-                  icon: LucideIcons.arrowLeft,
-                  onTap: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go('/home');
-                    }
-                  },
-                ),
-                Text(
-                  'Template Details',
-                  style: AppText.headline3().copyWith(fontSize: 16),
-                ),
-                _HeaderCircleButton(
-                  icon: LucideIcons.maximize2,
-                  onTap: _openFullscreenViewer,
-                ),
-              ],
-            ),
-          ),
+      ),
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.s20,
+          12,
+          AppSpacing.s20,
+          MediaQuery.of(context).padding.bottom + 12,
         ),
-
-        // ── Sticky Floating Bottom Action Dock ───────────────────────────────
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Container(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.s20,
-              12,
-              AppSpacing.s20,
-              bottomInset + 12,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.95),
-              border: const Border(
-                top: BorderSide(color: AppColors.borderSubtle, width: 1),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: template.isPro
-                    ? AppButton(
-                        label: 'Unlock with PRO',
-                        onPressed: () => AppToast.show(
-                          context,
-                          message: 'PRO feature coming soon',
-                          type: AppToastType.info,
-                        ),
-                        leadingIcon: const Icon(LucideIcons.lock, size: 18),
-                        isFullWidth: true,
-                      )
-                    : AppButton(
-                        label: 'Use template',
-                        onPressed: _loading ? null : _useTemplate,
-                        isLoading: _loading,
-                        leadingIcon: const Icon(LucideIcons.sparkles, size: 18),
-                        isFullWidth: true,
-                      ),
-              ),
-            ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: const Border(
+            top: BorderSide(color: AppColors.borderSubtle, width: 1),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-      ],
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: template.isPro
+              ? AppButton(
+                  label: 'Unlock with PRO',
+                  onPressed: () => AppToast.show(
+                    context,
+                    message: 'PRO feature coming soon',
+                    type: AppToastType.info,
+                  ),
+                  leadingIcon: const Icon(LucideIcons.lock, size: 18),
+                  isFullWidth: true,
+                )
+              : AppButton(
+                  label: 'Use template',
+                  onPressed: _loading ? null : _useTemplate,
+                  isLoading: _loading,
+                  leadingIcon: const Icon(LucideIcons.sparkles, size: 18),
+                  isFullWidth: true,
+                ),
+        ),
+      ),
     );
   }
 }
