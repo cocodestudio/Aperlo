@@ -397,63 +397,108 @@ class _PropertySliderState extends State<PropertySlider> {
 
   void _updateValue(double localDx, double trackWidth) {
     if (trackWidth <= 0) return;
-    const thumbDiameter = 30.0;
-    const padding = 3.0;
-    final maxThumbOffset = trackWidth - thumbDiameter - (padding * 2);
-    if (maxThumbOffset <= 0) return;
-    final clampedX = (localDx - padding - (thumbDiameter / 2)).clamp(0.0, maxThumbOffset);
-    final fraction = (clampedX / maxThumbOffset).clamp(0.0, 1.0);
+    const thumbDiameter = 28.0;
+    final availableWidth = trackWidth - thumbDiameter;
+    if (availableWidth <= 0) return;
+    final clampedX = (localDx - (thumbDiameter / 2)).clamp(0.0, availableWidth);
+    final fraction = (clampedX / availableWidth).clamp(0.0, 1.0);
     final newValue = widget.min + fraction * (widget.max - widget.min);
+    widget.onChanged(newValue);
+  }
+
+  void _step(double delta) {
+    HapticFeedback.selectionClick();
+    final newValue = (widget.value + delta).clamp(widget.min, widget.max);
     widget.onChanged(newValue);
   }
 
   @override
   Widget build(BuildContext context) {
-    final fraction = ((widget.value - widget.min) / (widget.max - widget.min)).clamp(0.0, 1.0);
+    final range = widget.max - widget.min;
+    final fraction = range > 0 ? ((widget.value - widget.min) / range).clamp(0.0, 1.0) : 0.0;
     final displayValue = widget.valueFormatter != null
         ? widget.valueFormatter!(widget.value)
         : widget.value.toStringAsFixed(2);
 
-    const trackHeight = 36.0;
-    const thumbDiameter = 30.0;
-    const padding = 3.0;
+    final step = range > 20 ? 1.0 : (range > 2 ? 0.1 : 0.05);
+
+    const trackHeight = 16.0;
+    const thumbDiameter = 28.0;
+    const totalTouchHeight = 44.0;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header Row: Label & Value Stepper Pill ──────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(widget.label, style: AppText.labelLarge()),
-              // Value badge pill
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: _dragging ? AppColors.accent : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  border: Border.all(
-                    color: _dragging ? AppColors.accent : AppColors.borderSubtle,
-                    width: 1,
+              Text(
+                widget.label,
+                style: AppText.labelLarge().copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Micro Stepper Decrement
+                  _StepperButton(
+                    icon: LucideIcons.minus,
+                    onTap: () => _step(-step),
                   ),
-                ),
-                child: Text(
-                  displayValue,
-                  style: AppText.mono(
-                    color: _dragging ? AppColors.accentOn : AppColors.inkSecondary,
-                  ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
+                  const SizedBox(width: 4),
+
+                  // Value Badge Pill
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _dragging ? AppColors.accent : AppColors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border: Border.all(
+                        color: _dragging ? AppColors.accent : AppColors.borderSubtle,
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        if (_dragging)
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                      ],
+                    ),
+                    child: Text(
+                      displayValue,
+                      style: AppText.mono(
+                        color: _dragging ? AppColors.accentOn : AppColors.inkPrimary,
+                      ).copyWith(fontSize: 11.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+
+                  // Micro Stepper Increment
+                  _StepperButton(
+                    icon: LucideIcons.plus,
+                    onTap: () => _step(step),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
+          // ── Interactive Track & Floating Thumb ──────────────────────────────
           LayoutBuilder(
             builder: (context, constraints) {
               final trackWidth = constraints.maxWidth;
-              final maxThumbOffset = trackWidth - thumbDiameter - (padding * 2);
-              final thumbLeft = padding + (fraction * maxThumbOffset).clamp(0.0, maxThumbOffset);
+              final maxThumbOffset = (trackWidth - thumbDiameter).clamp(0.0, trackWidth);
+              final thumbLeft = (fraction * maxThumbOffset).clamp(0.0, maxThumbOffset);
               final fillWidth = thumbLeft + (thumbDiameter / 2);
 
               return GestureDetector(
@@ -472,44 +517,85 @@ class _PropertySliderState extends State<PropertySlider> {
                   _updateValue(d.localPosition.dx, trackWidth);
                 },
                 onTapUp: (_) => setState(() => _dragging = false),
-                child: Container(
-                  height: trackHeight,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(trackHeight / 2),
-                    border: Border.all(
-                      color: _dragging ? AppColors.accent.withValues(alpha: 0.35) : AppColors.borderSubtle,
-                      width: 1.0,
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  height: totalTouchHeight,
                   child: Stack(
+                    clipBehavior: Clip.none,
                     alignment: Alignment.centerLeft,
                     children: [
-                      // ── Active Pill Fill ─────────────────────────────────
+                      // ── Track Base Capsule ──────────────────────────────
                       Positioned(
                         left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: fillWidth.clamp(0.0, trackWidth),
+                        right: 0,
+                        top: (totalTouchHeight - trackHeight) / 2,
+                        height: trackHeight,
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.accent.withValues(alpha: 0.75),
-                                AppColors.accent,
-                              ],
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(trackHeight / 2),
+                            border: Border.all(
+                              color: AppColors.borderSubtle,
+                              width: 1.0,
                             ),
+                          ),
+                          child: Stack(
+                            children: [
+                              // Subtle notch guide marks
+                              Positioned.fill(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: List.generate(3, (index) {
+                                    return Container(
+                                      width: 1.5,
+                                      height: 5.0,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.borderStrong.withValues(alpha: 0.45),
+                                        borderRadius: BorderRadius.circular(1),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+
+                              // Active Fill Pill
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: fillWidth.clamp(0.0, trackWidth),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF135338),
+                                        Color(0xFF1A6B4A),
+                                        Color(0xFF268A60),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(trackHeight / 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accent.withValues(alpha: 0.25),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
 
-                      // ── Floating Thumb ───────────────────────────────────
+                      // ── Floating Precision Thumb ────────────────────────
                       Positioned(
                         left: thumbLeft,
+                        top: (totalTouchHeight - thumbDiameter) / 2,
                         child: AnimatedScale(
-                          scale: _dragging ? 1.06 : 1.0,
-                          duration: const Duration(milliseconds: 120),
+                          scale: _dragging ? 1.14 : 1.0,
+                          duration: const Duration(milliseconds: 140),
+                          curve: Curves.easeOutBack,
                           child: Container(
                             width: thumbDiameter,
                             height: thumbDiameter,
@@ -518,45 +604,40 @@ class _PropertySliderState extends State<PropertySlider> {
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: _dragging ? AppColors.accent : AppColors.borderStrong,
-                                width: _dragging ? 2.2 : 1.5,
+                                width: _dragging ? 2.4 : 1.8,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: _dragging ? 0.22 : 0.14),
+                                  color: Colors.black.withValues(alpha: _dragging ? 0.22 : 0.12),
                                   blurRadius: _dragging ? 8 : 4,
                                   spreadRadius: _dragging ? 1 : 0,
-                                  offset: const Offset(0, 1.5),
+                                  offset: Offset(0, _dragging ? 3 : 1.5),
                                 ),
                                 if (_dragging)
                                   BoxShadow(
-                                    color: AppColors.accent.withValues(alpha: 0.25),
+                                    color: AppColors.accent.withValues(alpha: 0.35),
                                     blurRadius: 10,
                                     spreadRadius: 2,
                                   ),
                               ],
                             ),
                             child: Center(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 2.0,
-                                    height: 10.0,
-                                    decoration: BoxDecoration(
-                                      color: _dragging ? AppColors.accent : AppColors.inkDisabled,
-                                      borderRadius: BorderRadius.circular(1.0),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2.5),
-                                  Container(
-                                    width: 2.0,
-                                    height: 10.0,
-                                    decoration: BoxDecoration(
-                                      color: _dragging ? AppColors.accent : AppColors.inkDisabled,
-                                      borderRadius: BorderRadius.circular(1.0),
-                                    ),
-                                  ),
-                                ],
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 140),
+                                width: _dragging ? 10.0 : 7.0,
+                                height: _dragging ? 10.0 : 7.0,
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    if (_dragging)
+                                      BoxShadow(
+                                        color: AppColors.accent.withValues(alpha: 0.6),
+                                        blurRadius: 6,
+                                        spreadRadius: 1,
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -569,6 +650,35 @@ class _PropertySliderState extends State<PropertySlider> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _StepperButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceMuted,
+      borderRadius: BorderRadius.circular(AppRadius.r6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.r6),
+        onTap: onTap,
+        child: Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.r6),
+            border: Border.all(color: AppColors.borderSubtle, width: 1),
+          ),
+          child: Icon(icon, size: 11, color: AppColors.inkSecondary),
+        ),
       ),
     );
   }
