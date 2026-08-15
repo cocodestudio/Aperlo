@@ -32,6 +32,38 @@ class ProBadge extends StatelessWidget {
   }
 }
 
+/// "NEW" badge — Flat (zero shadow/elevation) with crisp white border and high-contrast pop
+class NewBadge extends StatelessWidget {
+  const NewBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      height: 18,
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        borderRadius: AppRadius.br6,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          'NEW',
+          style: AppText.labelSmall(color: Colors.white).copyWith(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.6,
+            height: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Category filter chip (horizontal scroll row usage)
 class CategoryChip extends StatefulWidget {
   const CategoryChip({

@@ -11,6 +11,7 @@ import '../../core/theme/app_shadows.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../models/collection.dart';
+import '../../models/template.dart';
 import '../../providers/app_providers.dart';
 import '../../widgets/badges.dart';
 import '../../widgets/empty_state.dart';
@@ -571,20 +572,22 @@ class _RecentScreenshotCardState extends State<_RecentScreenshotCard> {
 
 // ── Featured Template Card ───────────────────────────────────────────────────
 
-class _FeaturedTemplateCard extends StatefulWidget {
+class _FeaturedTemplateCard extends ConsumerStatefulWidget {
   const _FeaturedTemplateCard({required this.template});
-  final dynamic template;
+  final Template template;
 
   @override
-  State<_FeaturedTemplateCard> createState() => _FeaturedTemplateCardState();
+  ConsumerState<_FeaturedTemplateCard> createState() => _FeaturedTemplateCardState();
 }
 
-class _FeaturedTemplateCardState extends State<_FeaturedTemplateCard> {
+class _FeaturedTemplateCardState extends ConsumerState<_FeaturedTemplateCard> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final t = widget.template;
+    final isNew = ref.watch(templateNewBadgeProvider(t));
+
     return Semantics(
       button: true,
       label: 'Use template ${t.name}',
@@ -625,6 +628,8 @@ class _FeaturedTemplateCardState extends State<_FeaturedTemplateCard> {
                     ),
                   if (t.isPro)
                     const Positioned(top: 8, right: 8, child: ProBadge()),
+                  if (isNew)
+                    const Positioned(top: 8, left: 8, child: NewBadge()),
                   // Template name overlay at bottom
                   Positioned(
                     left: 0,
@@ -646,7 +651,7 @@ class _FeaturedTemplateCardState extends State<_FeaturedTemplateCard> {
                         ),
                       ),
                       child: Text(
-                        t.name ?? '',
+                        t.name,
                         style: AppText.labelSmall(color: Colors.white)
                             .copyWith(fontSize: 11),
                         maxLines: 1,

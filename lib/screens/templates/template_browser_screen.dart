@@ -276,28 +276,10 @@ class _TemplateCardState extends ConsumerState<_TemplateCard> {
 
               // NEW badge
               if (isNew)
-                Positioned(
+                const Positioned(
                   top: 8,
                   left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'NEW',
-                      style: AppText.labelSmall(color: Colors.white)
-                          .copyWith(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                    ),
-                  ),
+                  child: NewBadge(),
                 ),
 
               // Lock overlay for premium
