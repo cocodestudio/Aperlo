@@ -475,9 +475,9 @@ class _PropertySliderState extends State<PropertySlider> {
                     ),
                     child: Text(
                       displayValue,
-                      style: AppText.mono(
+                      style: AppText.bodyDefault(
                         color: _dragging ? AppColors.accentOn : AppColors.inkPrimary,
-                      ).copyWith(fontSize: 11.5, fontWeight: FontWeight.w700),
+                      ).copyWith(fontSize: 12.0, fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(width: 4),
