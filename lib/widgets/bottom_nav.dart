@@ -19,9 +19,9 @@ double getFloatingBottomNavClearance(BuildContext context) {
 }
 
 /// Returns the bottom clearance needed specifically for Scaffold Floating Action Buttons (FABs)
-/// so they float cleanly with an exact 16px gap above the floating bottom navigation bar.
+/// so they float cleanly with a comfortable gap above the floating bottom navigation bar.
 double getFloatingBottomNavFabClearance(BuildContext context) {
-  return kFloatingBottomNavHeight + kFloatingBottomNavMargin;
+  return kFloatingBottomNavHeight + kFloatingBottomNavMargin + 10.0;
 }
 
 const _tabs = [
