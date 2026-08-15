@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
+import 'services/fcm_service.dart';
 
 const SystemUiOverlayStyle appSystemUiOverlayStyle = SystemUiOverlayStyle(
   statusBarColor: Colors.transparent,
@@ -22,6 +23,7 @@ const SystemUiOverlayStyle appSystemUiOverlayStyle = SystemUiOverlayStyle(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await FCMService.init();
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
