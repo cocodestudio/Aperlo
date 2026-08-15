@@ -322,9 +322,45 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
     final template = widget.template;
     final size = MediaQuery.of(context).size;
 
-    // Showcase hero mockup dimensions (bounded portrait aspect)
-    final heroHeight = (size.height * 0.44).clamp(260.0, 420.0);
-    final heroWidth = heroHeight * (9.0 / 16.0);
+    // ── Dynamic Spec Calculations ──────────────────────────────────────────
+    final isTablet = template.deviceType == DeviceType.tablet;
+    final isDesktop = template.deviceType == DeviceType.desktop;
+    final formatValue = isTablet
+        ? '3:4 Tablet'
+        : isDesktop
+            ? '16:9 Desktop'
+            : '9:16 Portrait';
+    final formatSub = isTablet
+        ? '2048 × 2732 px'
+        : isDesktop
+            ? '2880 × 1800 px'
+            : '1242 × 2688 px';
+    final formatIcon = isTablet
+        ? LucideIcons.tablet
+        : isDesktop
+            ? LucideIcons.monitor
+            : LucideIcons.smartphone;
+
+    // Aspect ratio & responsive hero dimensions
+    final aspectRatio = isTablet ? (3.0 / 4.0) : isDesktop ? (16.0 / 10.0) : (9.0 / 16.0);
+    final heroHeight = (size.height * 0.42).clamp(240.0, 400.0);
+    final heroWidth = (heroHeight * aspectRatio).clamp(160.0, size.width - 64.0);
+
+    // Typography calculation
+    final hFont = template.headlineFont.isNotEmpty ? template.headlineFont : 'Syne';
+    final subFont = template.subheadlineFont.isNotEmpty ? template.subheadlineFont : 'DM Sans';
+    final typographyValue = hFont == subFont ? hFont : '$hFont + $subFont';
+
+    // Screenshots slot calculation
+    final layoutDeviceCount = template.layout.where((l) {
+      final type = l['type'] as String? ?? '';
+      return type == 'phone' || type == 'image' || type == 'mockup';
+    }).length;
+    final slotsCount = template.screenshotSlots > 0
+        ? template.screenshotSlots
+        : (layoutDeviceCount > 0 ? layoutDeviceCount : 1);
+    final slotsValue = '$slotsCount ${slotsCount == 1 ? 'Device Slot' : 'Device Slots'}';
+    final slotsSub = slotsCount == 1 ? 'Single Device Focus' : '$slotsCount Multi-Device Flow';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -592,27 +628,31 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
               crossAxisCount: 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: 2.3,
+              childAspectRatio: 2.15,
               children: [
                 _SpecCard(
-                  icon: LucideIcons.smartphone,
+                  icon: formatIcon,
                   label: 'Format',
-                  value: '9:16 Portrait',
+                  value: formatValue,
+                  subtitle: formatSub,
                 ),
                 _SpecCard(
                   icon: LucideIcons.type,
                   label: 'Typography',
-                  value: '${template.headlineFont} • ${template.subheadlineFont}',
+                  value: typographyValue,
+                  subtitle: 'Google Fonts',
                 ),
                 _SpecCard(
                   icon: LucideIcons.images,
                   label: 'Screenshots',
-                  value: '${template.screenshotSlots} Slot${template.screenshotSlots > 1 ? 's' : ''}',
+                  value: slotsValue,
+                  subtitle: slotsSub,
                 ),
                 _SpecCard(
                   icon: LucideIcons.sparkles,
                   label: 'Export Quality',
                   value: '4K Ultra HD',
+                  subtitle: '300 DPI • Lossless',
                 ),
               ],
             ),
@@ -762,31 +802,38 @@ class _SpecCard extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.subtitle,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.br12,
         border: Border.all(color: AppColors.borderSubtle),
+        boxShadow: AppShadows.subtle,
       ),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: AppColors.accentTint,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: AppColors.accent.withValues(alpha: 0.2),
+                width: 1,
+              ),
             ),
-            child: Icon(icon, size: 16, color: AppColors.accent),
+            child: Icon(icon, size: 17, color: AppColors.accent),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -795,20 +842,38 @@ class _SpecCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  label,
-                  style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(fontSize: 10),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  value,
-                  style: AppText.labelLarge().copyWith(
-                    fontSize: 12,
+                  label.toUpperCase(),
+                  style: AppText.labelSmall(color: AppColors.inkMuted).copyWith(
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  style: AppText.labelLarge().copyWith(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.inkPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle!,
+                    style: AppText.bodySmall(color: AppColors.inkMuted).copyWith(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ],
             ),
           ),
