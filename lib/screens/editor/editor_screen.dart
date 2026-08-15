@@ -1707,52 +1707,142 @@ class _BackgroundDockControlView extends StatefulWidget {
 }
 
 class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> {
-  int _tabIndex = 0; // 0: Solid, 1: Gradient, 2: Split
+  static const _types = ['Solid', 'Gradient', 'Grid', 'Dots', 'Stripes', 'Rays', 'Split'];
+
+  String _currentType(Map<String, dynamic> l) {
+    final bgType = l['bg_type'] as String?;
+    if (bgType == 'grid' || l['grid'] == true || l['grid_spacing'] != null) return 'Grid';
+    if (bgType == 'dots' || l['dots'] == true || l['dot_spacing'] != null) return 'Dots';
+    if (bgType == 'stripes' || l['stripes'] == true || l['stripe_spacing'] != null) return 'Stripes';
+    if (bgType == 'rays' || l['rays'] == true || l['ray_count'] != null) return 'Rays';
+    if (bgType == 'split' || l['split_at'] != null) return 'Split';
+    if (bgType == 'linear' || bgType == 'radial' || l['gradient'] != null || l['radial_gradient'] != null) return 'Gradient';
+    return 'Solid';
+  }
 
   @override
   Widget build(BuildContext context) {
     final l = Map<String, dynamic>.from(widget.layer);
+    final selectedType = _currentType(l);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TogglePillGroup(
-          options: const ['Solid', 'Gradient', 'Split'],
-          selectedValue: _tabIndex == 0 ? 'Solid' : (_tabIndex == 1 ? 'Gradient' : 'Split'),
-          onChanged: (val) {
-            setState(() {
-              if (val == 'Solid') {
-                _tabIndex = 0;
-              } else if (val == 'Gradient') {
-                _tabIndex = 1;
-              } else {
-                _tabIndex = 2;
-              }
-            });
-          },
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _types.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final type = _types[index];
+              final isSelected = type == selectedType;
+              return GestureDetector(
+                onTap: () {
+                  final newLayer = Map<String, dynamic>.from(l);
+                  // Clean specialized keys
+                  newLayer.remove('split_at');
+                  newLayer.remove('top_color');
+                  newLayer.remove('bottom_color');
+                  newLayer.remove('radial_gradient');
+                  newLayer.remove('gradient');
+
+                  if (type == 'Solid') {
+                    newLayer['bg_type'] = 'solid';
+                    newLayer['color'] = newLayer['color'] ?? newLayer['bg_color'] ?? '#FAF9F6';
+                  } else if (type == 'Gradient') {
+                    newLayer['bg_type'] = 'linear';
+                    newLayer['gradient'] = newLayer['gradient'] ?? ['#0082FF', '#0040A3'];
+                    newLayer['begin'] = newLayer['begin'] ?? 'topCenter';
+                    newLayer['end'] = newLayer['end'] ?? 'bottomCenter';
+                  } else if (type == 'Grid') {
+                    newLayer['bg_type'] = 'grid';
+                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
+                    newLayer['grid_color'] = newLayer['grid_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
+                    newLayer['grid_line_width'] = newLayer['grid_line_width'] ?? 1.5;
+                    newLayer['grid_spacing'] = newLayer['grid_spacing'] ?? 32.0;
+                    newLayer['grid_opacity'] = newLayer['grid_opacity'] ?? 0.15;
+                    newLayer['grid_angle'] = newLayer['grid_angle'] ?? 0.0;
+                  } else if (type == 'Dots') {
+                    newLayer['bg_type'] = 'dots';
+                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
+                    newLayer['dot_color'] = newLayer['dot_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
+                    newLayer['dot_size'] = newLayer['dot_size'] ?? 3.0;
+                    newLayer['dot_spacing'] = newLayer['dot_spacing'] ?? 24.0;
+                    newLayer['dot_opacity'] = newLayer['dot_opacity'] ?? 0.20;
+                  } else if (type == 'Stripes') {
+                    newLayer['bg_type'] = 'stripes';
+                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
+                    newLayer['stripe_color'] = newLayer['stripe_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
+                    newLayer['stripe_width'] = newLayer['stripe_width'] ?? 8.0;
+                    newLayer['stripe_spacing'] = newLayer['stripe_spacing'] ?? 28.0;
+                    newLayer['stripe_opacity'] = newLayer['stripe_opacity'] ?? 0.15;
+                    newLayer['stripe_angle'] = newLayer['stripe_angle'] ?? 45.0;
+                  } else if (type == 'Rays') {
+                    newLayer['bg_type'] = 'rays';
+                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
+                    newLayer['ray_color'] = newLayer['ray_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
+                    newLayer['ray_count'] = newLayer['ray_count'] ?? 16;
+                    newLayer['ray_opacity'] = newLayer['ray_opacity'] ?? 0.15;
+                  } else if (type == 'Split') {
+                    newLayer['bg_type'] = 'split';
+                    newLayer['top_color'] = newLayer['top_color'] ?? '#FAF9F6';
+                    newLayer['bottom_color'] = newLayer['bottom_color'] ?? '#F5F7F5';
+                    newLayer['split_at'] = newLayer['split_at'] ?? 0.5;
+                  }
+                  widget.onUpdateLayer(newLayer);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent : AppColors.surfaceMuted.withValues(alpha: 0.6),
+                    borderRadius: AppRadius.brFull,
+                    border: Border.all(
+                      color: isSelected ? AppColors.accent : AppColors.borderSubtle,
+                    ),
+                    boxShadow: isSelected ? AppShadows.subtle : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      type,
+                      style: AppText.labelDefault(
+                        color: isSelected ? AppColors.accentOn : AppColors.inkSecondary,
+                      ).copyWith(fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
-        const SizedBox(height: 12),
-        if (_tabIndex == 0) ...[
+        const SizedBox(height: 14),
+
+        // ── Solid ──────────────────────────────────────────────────────────
+        if (selectedType == 'Solid') ...[
           PropertyColorPicker(
-            label: 'Solid Color',
-            hexColor: l['color'] as String? ?? '#FAF9F6',
+            label: 'Background Color',
+            hexColor: l['color'] as String? ?? l['bg_color'] as String? ?? '#FAF9F6',
             onChanged: (c) {
               l['color'] = c;
+              l['bg_type'] = 'solid';
               l.remove('gradient');
               l.remove('split_at');
               widget.onUpdateLayer(l);
             },
           ),
-        ] else if (_tabIndex == 1) ...[
+        ]
+        // ── Gradient ───────────────────────────────────────────────────────
+        else if (selectedType == 'Gradient') ...[
           PropertyColorPicker(
             label: 'Start Color',
             hexColor: (l['gradient'] as List?)?[0] as String? ?? '#0082FF',
             onChanged: (c) {
               if (l['gradient'] == null) l['gradient'] = ['#0082FF', '#0040A3'];
               l['gradient'][0] = c;
-              l.remove('color');
-              l.remove('split_at');
+              l['bg_type'] = 'linear';
               widget.onUpdateLayer(l);
             },
           ),
@@ -1763,17 +1853,276 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
             onChanged: (c) {
               if (l['gradient'] == null) l['gradient'] = ['#0082FF', '#0040A3'];
               l['gradient'][1] = c;
-              l.remove('color');
-              l.remove('split_at');
+              l['bg_type'] = 'linear';
               widget.onUpdateLayer(l);
             },
           ),
-        ] else ...[
+        ]
+        // ── Grid Lines ─────────────────────────────────────────────────────
+        else if (selectedType == 'Grid') ...[
+          PropertyColorPicker(
+            label: 'Base Background',
+            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['bg_color'] = c;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'Grid Line Color',
+            hexColor: l['grid_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+            onChanged: (c) {
+              l['grid_color'] = c;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Line Width',
+            value: (l['grid_line_width'] as num?)?.toDouble() ?? 1.5,
+            min: 0.5,
+            max: 8.0,
+            valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
+            onChanged: (v) {
+              l['grid_line_width'] = v;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Grid Spacing',
+            value: (l['grid_spacing'] as num?)?.toDouble() ?? 32.0,
+            min: 10.0,
+            max: 100.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['grid_spacing'] = v;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Line Opacity',
+            value: (l['grid_opacity'] as num?)?.toDouble() ?? 0.15,
+            min: 0.05,
+            max: 1.0,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['grid_opacity'] = v;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Grid Angle',
+            value: (l['grid_angle'] as num?)?.toDouble() ?? 0.0,
+            min: 0.0,
+            max: 90.0,
+            valueFormatter: (v) => '${v.toInt()}°',
+            onChanged: (v) {
+              l['grid_angle'] = v;
+              l['bg_type'] = 'grid';
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ]
+        // ── Dots ───────────────────────────────────────────────────────────
+        else if (selectedType == 'Dots') ...[
+          PropertyColorPicker(
+            label: 'Base Background',
+            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['bg_color'] = c;
+              l['bg_type'] = 'dots';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'Dot Color',
+            hexColor: l['dot_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+            onChanged: (c) {
+              l['dot_color'] = c;
+              l['bg_type'] = 'dots';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Dot Size',
+            value: (l['dot_size'] as num?)?.toDouble() ?? 3.0,
+            min: 1.0,
+            max: 12.0,
+            valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
+            onChanged: (v) {
+              l['dot_size'] = v;
+              l['bg_type'] = 'dots';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Dot Spacing',
+            value: (l['dot_spacing'] as num?)?.toDouble() ?? 24.0,
+            min: 10.0,
+            max: 80.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['dot_spacing'] = v;
+              l['bg_type'] = 'dots';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Dot Opacity',
+            value: (l['dot_opacity'] as num?)?.toDouble() ?? 0.20,
+            min: 0.05,
+            max: 1.0,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['dot_opacity'] = v;
+              l['bg_type'] = 'dots';
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ]
+        // ── Stripes ────────────────────────────────────────────────────────
+        else if (selectedType == 'Stripes') ...[
+          PropertyColorPicker(
+            label: 'Base Background',
+            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['bg_color'] = c;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'Stripe Color',
+            hexColor: l['stripe_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+            onChanged: (c) {
+              l['stripe_color'] = c;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Width',
+            value: (l['stripe_width'] as num?)?.toDouble() ?? 8.0,
+            min: 2.0,
+            max: 30.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['stripe_width'] = v;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Spacing',
+            value: (l['stripe_spacing'] as num?)?.toDouble() ?? 28.0,
+            min: 10.0,
+            max: 80.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['stripe_spacing'] = v;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Opacity',
+            value: (l['stripe_opacity'] as num?)?.toDouble() ?? 0.15,
+            min: 0.05,
+            max: 1.0,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['stripe_opacity'] = v;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Angle',
+            value: (l['stripe_angle'] as num?)?.toDouble() ?? 45.0,
+            min: 0.0,
+            max: 180.0,
+            valueFormatter: (v) => '${v.toInt()}°',
+            onChanged: (v) {
+              l['stripe_angle'] = v;
+              l['bg_type'] = 'stripes';
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ]
+        // ── Rays ───────────────────────────────────────────────────────────
+        else if (selectedType == 'Rays') ...[
+          PropertyColorPicker(
+            label: 'Base Background',
+            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
+            onChanged: (c) {
+              l['bg_color'] = c;
+              l['bg_type'] = 'rays';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertyColorPicker(
+            label: 'Ray Color',
+            hexColor: l['ray_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+            onChanged: (c) {
+              l['ray_color'] = c;
+              l['bg_type'] = 'rays';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Ray Count',
+            value: (l['ray_count'] as num?)?.toDouble() ?? 16.0,
+            min: 6.0,
+            max: 36.0,
+            valueFormatter: (v) => '${v.toInt()} rays',
+            onChanged: (v) {
+              l['ray_count'] = v.toInt();
+              l['bg_type'] = 'rays';
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Ray Opacity',
+            value: (l['ray_opacity'] as num?)?.toDouble() ?? 0.15,
+            min: 0.05,
+            max: 1.0,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['ray_opacity'] = v;
+              l['bg_type'] = 'rays';
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ]
+        // ── Split ──────────────────────────────────────────────────────────
+        else ...[
           PropertyColorPicker(
             label: 'Top Color',
             hexColor: l['top_color'] as String? ?? '#FAF9F6',
             onChanged: (c) {
               l['top_color'] = c;
+              l['bg_type'] = 'split';
               if (l['split_at'] == null) l['split_at'] = 0.5;
               l.remove('color');
               l.remove('gradient');
@@ -1786,6 +2135,7 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
             hexColor: l['bottom_color'] as String? ?? '#F5F7F5',
             onChanged: (c) {
               l['bottom_color'] = c;
+              l['bg_type'] = 'split';
               if (l['split_at'] == null) l['split_at'] = 0.5;
               l.remove('color');
               l.remove('gradient');
@@ -1801,6 +2151,7 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
             valueFormatter: (v) => '${(v * 100).toInt()}%',
             onChanged: (v) {
               l['split_at'] = v;
+              l['bg_type'] = 'split';
               widget.onUpdateLayer(l);
             },
           ),

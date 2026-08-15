@@ -410,16 +410,34 @@ class _Background extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgType = layer['bg_type'] as String? ?? _inferBgType(layer);
+
+    // ── Pattern background (Grid, Dots, Stripes, Rays) ────────────────────
+    if (bgType == 'grid' || bgType == 'dots' || bgType == 'stripes' || bgType == 'rays') {
+      return SizedBox(
+        width: w,
+        height: h,
+        child: CustomPaint(
+          size: Size(w, h),
+          painter: _BackgroundPatternPainter(
+            layer: layer,
+            bgType: bgType,
+          ),
+        ),
+      );
+    }
+
     // ── Split background ──────────────────────────────────────────────────
     final splitAt = _f(layer['split_at']);
-    if (splitAt > 0) {
+    if (bgType == 'split' || splitAt > 0) {
       return SizedBox(
         width: w,
         height: h,
         child: Column(
           children: [
             Container(
-                height: h * splitAt, color: _color(layer['top_color'])),
+                height: h * (splitAt > 0 ? splitAt : 0.5),
+                color: _color(layer['top_color'] ?? layer['color'], const Color(0xFFFAF9F6))),
             Expanded(
                 child: Container(
                     color: _color(layer['bottom_color'],
@@ -431,7 +449,10 @@ class _Background extends StatelessWidget {
 
     // ── Radial gradient ───────────────────────────────────────────────────
     final radialColors = layer['radial_gradient'] as List?;
-    if (radialColors != null && radialColors.length >= 2) {
+    if (bgType == 'radial' || (radialColors != null && radialColors.length >= 2)) {
+      final rColors = radialColors != null && radialColors.length >= 2
+          ? radialColors.map((c) => _color(c)).toList()
+          : [_color(layer['color'], const Color(0xFF0082FF)), _color(layer['end_color'], const Color(0xFF0040A3))];
       return Container(
         width: w,
         height: h,
@@ -439,7 +460,7 @@ class _Background extends StatelessWidget {
           gradient: RadialGradient(
             center: _alignment(layer['radial_center'] as String?),
             radius: _f(layer['radial_radius'], 0.8),
-            colors: radialColors.map((c) => _color(c)).toList(),
+            colors: rColors,
             stops: (layer['radial_stops'] as List?)
                     ?.map((s) => _f(s))
                     .toList() ??
@@ -451,7 +472,10 @@ class _Background extends StatelessWidget {
 
     // ── Linear gradient ───────────────────────────────────────────────────
     final gradColors = layer['gradient'] as List?;
-    if (gradColors != null && gradColors.length >= 2) {
+    if (bgType == 'linear' || (gradColors != null && gradColors.length >= 2)) {
+      final gColors = gradColors != null && gradColors.length >= 2
+          ? gradColors.map((c) => _color(c)).toList()
+          : [_color(layer['color'], const Color(0xFF0082FF)), _color(layer['end_color'], const Color(0xFF0040A3))];
       return Container(
         width: w,
         height: h,
@@ -459,7 +483,7 @@ class _Background extends StatelessWidget {
           gradient: LinearGradient(
             begin: _alignment(layer['begin'] as String?),
             end: _alignment(layer['end'] as String? ?? 'bottomCenter'),
-            colors: gradColors.map((c) => _color(c)).toList(),
+            colors: gColors,
             stops: (layer['stops'] as List?)
                     ?.map((s) => _f(s))
                     .toList(),
@@ -472,8 +496,177 @@ class _Background extends StatelessWidget {
     return Container(
       width: w,
       height: h,
-      color: _color(layer['color'], const Color(0xFFF5F7F5)),
+      color: _color(layer['color'] ?? layer['bg_color'], const Color(0xFFF5F7F5)),
     );
+  }
+
+  static String _inferBgType(Map<String, dynamic> l) {
+    if (l['grid'] == true || l['grid_spacing'] != null || l['grid_line_width'] != null) return 'grid';
+    if (l['dots'] == true || l['dot_spacing'] != null || l['dot_size'] != null) return 'dots';
+    if (l['stripes'] == true || l['stripe_spacing'] != null || l['stripe_width'] != null) return 'stripes';
+    if (l['rays'] == true || l['ray_count'] != null) return 'rays';
+    if (l['split_at'] != null) return 'split';
+    if (l['radial_gradient'] != null) return 'radial';
+    if (l['gradient'] != null) return 'linear';
+    return 'solid';
+  }
+}
+
+class _BackgroundPatternPainter extends CustomPainter {
+  const _BackgroundPatternPainter({
+    required this.layer,
+    required this.bgType,
+  });
+
+  final Map<String, dynamic> layer;
+  final String bgType;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 1. Draw base background
+    final baseColor = _color(layer['bg_color'] ?? layer['color'], const Color(0xFFFAF9F6));
+    final gradColors = layer['gradient'] as List?;
+    if (gradColors != null && gradColors.length >= 2) {
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: _alignment(layer['begin'] as String?),
+          end: _alignment(layer['end'] as String? ?? 'bottomCenter'),
+          colors: gradColors.map((c) => _color(c)).toList(),
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    } else {
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()..color = baseColor,
+      );
+    }
+
+    final scale = size.width / 375.0;
+
+    // 2. Draw Pattern Overlay
+    switch (bgType) {
+      case 'grid':
+        final gridColor = _color(layer['grid_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: _f(layer['grid_opacity'] ?? layer['pattern_opacity'], 0.15).clamp(0.0, 1.0));
+        final rawLineWidth = _f(layer['grid_line_width'], 1.5);
+        final rawSpacing = _f(layer['grid_spacing'], 32.0);
+        final gridAngle = _f(layer['grid_angle'], 0.0);
+
+        final lineWidth = (rawLineWidth * scale).clamp(0.5, 40.0);
+        final spacing = (rawSpacing * scale).clamp(6.0, 500.0);
+
+        final gridPaint = Paint()
+          ..color = gridColor
+          ..strokeWidth = lineWidth
+          ..style = PaintingStyle.stroke;
+
+        if (gridAngle != 0) {
+          canvas.save();
+          canvas.translate(size.width / 2, size.height / 2);
+          canvas.rotate(gridAngle * math.pi / 180);
+          final diag = math.sqrt(size.width * size.width + size.height * size.height);
+          
+          for (double x = -diag; x <= diag; x += spacing) {
+            canvas.drawLine(Offset(x, -diag), Offset(x, diag), gridPaint);
+          }
+          for (double y = -diag; y <= diag; y += spacing) {
+            canvas.drawLine(Offset(-diag, y), Offset(diag, y), gridPaint);
+          }
+          canvas.restore();
+        } else {
+          for (double x = 0; x <= size.width + 1; x += spacing) {
+            canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+          }
+          for (double y = 0; y <= size.height + 1; y += spacing) {
+            canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+          }
+        }
+        break;
+
+      case 'dots':
+        final dotColor = _color(layer['dot_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: _f(layer['dot_opacity'] ?? layer['pattern_opacity'], 0.20).clamp(0.0, 1.0));
+        final rawDotSize = _f(layer['dot_size'], 3.0);
+        final rawSpacing = _f(layer['dot_spacing'], 24.0);
+
+        final dotRadius = (rawDotSize * scale / 2.0).clamp(0.5, 40.0);
+        final spacing = (rawSpacing * scale).clamp(6.0, 400.0);
+
+        final dotPaint = Paint()
+          ..color = dotColor
+          ..style = PaintingStyle.fill;
+
+        for (double x = spacing / 2; x < size.width + spacing; x += spacing) {
+          for (double y = spacing / 2; y < size.height + spacing; y += spacing) {
+            canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+          }
+        }
+        break;
+
+      case 'stripes':
+        final stripeColor = _color(layer['stripe_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: _f(layer['stripe_opacity'] ?? layer['pattern_opacity'], 0.15).clamp(0.0, 1.0));
+        final rawWidth = _f(layer['stripe_width'], 8.0);
+        final rawSpacing = _f(layer['stripe_spacing'], 28.0);
+        final stripeAngle = _f(layer['stripe_angle'], 45.0);
+
+        final stripeWidth = (rawWidth * scale).clamp(1.0, 100.0);
+        final spacing = (rawSpacing * scale).clamp(4.0, 500.0);
+
+        final stripePaint = Paint()
+          ..color = stripeColor
+          ..strokeWidth = stripeWidth
+          ..style = PaintingStyle.stroke;
+
+        canvas.save();
+        canvas.translate(size.width / 2, size.height / 2);
+        canvas.rotate(stripeAngle * math.pi / 180);
+        final diag = math.sqrt(size.width * size.width + size.height * size.height);
+        final step = spacing + stripeWidth;
+
+        for (double x = -diag; x <= diag; x += step) {
+          canvas.drawLine(Offset(x, -diag), Offset(x, diag), stripePaint);
+        }
+        canvas.restore();
+        break;
+
+      case 'rays':
+        final rayColor = _color(layer['ray_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: _f(layer['ray_opacity'] ?? layer['pattern_opacity'], 0.15).clamp(0.0, 1.0));
+        final rayCount = _f(layer['ray_count'], 16).toInt().clamp(4, 72);
+        final center = Offset(size.width / 2, size.height / 2);
+        final radius = math.sqrt(size.width * size.width + size.height * size.height);
+
+        final rayPaint = Paint()
+          ..color = rayColor
+          ..style = PaintingStyle.fill;
+
+        final stepAngle = (2 * math.pi) / rayCount;
+
+        for (int i = 0; i < rayCount; i += 2) {
+          final startAngle = i * stepAngle;
+          final path = Path()
+            ..moveTo(center.dx, center.dy)
+            ..lineTo(
+              center.dx + radius * math.cos(startAngle),
+              center.dy + radius * math.sin(startAngle),
+            )
+            ..arcTo(
+              Rect.fromCircle(center: center, radius: radius),
+              startAngle,
+              stepAngle,
+              false,
+            )
+            ..close();
+          canvas.drawPath(path, rayPaint);
+        }
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundPatternPainter oldDelegate) {
+    return oldDelegate.layer != layer || oldDelegate.bgType != bgType;
   }
 }
 

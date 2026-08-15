@@ -1246,6 +1246,283 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
           ]),
         ),
         PropertySheetSection(
+          title: 'Grid Lines',
+          content: buildSection('Grid Lines Pattern', [
+            PropertyColorPicker(
+              label: 'Base Background',
+              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
+              onChanged: (c) {
+                setState(() {
+                  _data['bg_color'] = c;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+            PropertyColorPicker(
+              label: 'Grid Line Color',
+              hexColor: _data['grid_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
+              onChanged: (c) {
+                setState(() {
+                  _data['grid_color'] = c;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Line Width',
+              value: (_data['grid_line_width'] as num?)?.toDouble() ?? 1.5,
+              min: 0.5, max: 8.0,
+              valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['grid_line_width'] = v;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Grid Spacing',
+              value: (_data['grid_spacing'] as num?)?.toDouble() ?? 32.0,
+              min: 10.0, max: 100.0,
+              valueFormatter: (v) => '${v.toInt()} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['grid_spacing'] = v;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Line Opacity',
+              value: (_data['grid_opacity'] as num?)?.toDouble() ?? 0.15,
+              min: 0.05, max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                setState(() {
+                  _data['grid_opacity'] = v;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Grid Angle',
+              value: (_data['grid_angle'] as num?)?.toDouble() ?? 0.0,
+              min: 0.0, max: 90.0,
+              valueFormatter: (v) => '${v.toInt()}°',
+              onChanged: (v) {
+                setState(() {
+                  _data['grid_angle'] = v;
+                  _data['bg_type'] = 'grid';
+                });
+                _updateData();
+              },
+            ),
+          ]),
+        ),
+        PropertySheetSection(
+          title: 'Dot Matrix',
+          content: buildSection('Dot Matrix Pattern', [
+            PropertyColorPicker(
+              label: 'Base Background',
+              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
+              onChanged: (c) {
+                setState(() {
+                  _data['bg_color'] = c;
+                  _data['bg_type'] = 'dots';
+                });
+                _updateData();
+              },
+            ),
+            PropertyColorPicker(
+              label: 'Dot Color',
+              hexColor: _data['dot_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
+              onChanged: (c) {
+                setState(() {
+                  _data['dot_color'] = c;
+                  _data['bg_type'] = 'dots';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Dot Size',
+              value: (_data['dot_size'] as num?)?.toDouble() ?? 3.0,
+              min: 1.0, max: 12.0,
+              valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['dot_size'] = v;
+                  _data['bg_type'] = 'dots';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Dot Spacing',
+              value: (_data['dot_spacing'] as num?)?.toDouble() ?? 24.0,
+              min: 10.0, max: 80.0,
+              valueFormatter: (v) => '${v.toInt()} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['dot_spacing'] = v;
+                  _data['bg_type'] = 'dots';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Dot Opacity',
+              value: (_data['dot_opacity'] as num?)?.toDouble() ?? 0.20,
+              min: 0.05, max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                setState(() {
+                  _data['dot_opacity'] = v;
+                  _data['bg_type'] = 'dots';
+                });
+                _updateData();
+              },
+            ),
+          ]),
+        ),
+        PropertySheetSection(
+          title: 'Stripes',
+          content: buildSection('Diagonal Stripes', [
+            PropertyColorPicker(
+              label: 'Base Background',
+              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
+              onChanged: (c) {
+                setState(() {
+                  _data['bg_color'] = c;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+            PropertyColorPicker(
+              label: 'Stripe Color',
+              hexColor: _data['stripe_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
+              onChanged: (c) {
+                setState(() {
+                  _data['stripe_color'] = c;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Stripe Width',
+              value: (_data['stripe_width'] as num?)?.toDouble() ?? 8.0,
+              min: 2.0, max: 30.0,
+              valueFormatter: (v) => '${v.toInt()} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['stripe_width'] = v;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Stripe Spacing',
+              value: (_data['stripe_spacing'] as num?)?.toDouble() ?? 28.0,
+              min: 10.0, max: 80.0,
+              valueFormatter: (v) => '${v.toInt()} px',
+              onChanged: (v) {
+                setState(() {
+                  _data['stripe_spacing'] = v;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Stripe Opacity',
+              value: (_data['stripe_opacity'] as num?)?.toDouble() ?? 0.15,
+              min: 0.05, max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                setState(() {
+                  _data['stripe_opacity'] = v;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Stripe Angle',
+              value: (_data['stripe_angle'] as num?)?.toDouble() ?? 45.0,
+              min: 0.0, max: 180.0,
+              valueFormatter: (v) => '${v.toInt()}°',
+              onChanged: (v) {
+                setState(() {
+                  _data['stripe_angle'] = v;
+                  _data['bg_type'] = 'stripes';
+                });
+                _updateData();
+              },
+            ),
+          ]),
+        ),
+        PropertySheetSection(
+          title: 'Sunburst Rays',
+          content: buildSection('Sunburst Rays', [
+            PropertyColorPicker(
+              label: 'Base Background',
+              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
+              onChanged: (c) {
+                setState(() {
+                  _data['bg_color'] = c;
+                  _data['bg_type'] = 'rays';
+                });
+                _updateData();
+              },
+            ),
+            PropertyColorPicker(
+              label: 'Ray Color',
+              hexColor: _data['ray_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
+              onChanged: (c) {
+                setState(() {
+                  _data['ray_color'] = c;
+                  _data['bg_type'] = 'rays';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Ray Count',
+              value: (_data['ray_count'] as num?)?.toDouble() ?? 16.0,
+              min: 6.0, max: 36.0,
+              valueFormatter: (v) => '${v.toInt()} rays',
+              onChanged: (v) {
+                setState(() {
+                  _data['ray_count'] = v.toInt();
+                  _data['bg_type'] = 'rays';
+                });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Ray Opacity',
+              value: (_data['ray_opacity'] as num?)?.toDouble() ?? 0.15,
+              min: 0.05, max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                setState(() {
+                  _data['ray_opacity'] = v;
+                  _data['bg_type'] = 'rays';
+                });
+                _updateData();
+              },
+            ),
+          ]),
+        ),
+        PropertySheetSection(
           title: 'Split Colors',
           content: buildSection('Split Colors', [
             PropertyColorPicker(
@@ -1254,6 +1531,7 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               onChanged: (c) {
                 setState(() {
                   _data['top_color'] = c;
+                  _data['bg_type'] = 'split';
                   if (_data['split_at'] == null) _data['split_at'] = 0.5;
                   _data.remove('color');
                   _data.remove('gradient');
@@ -1267,6 +1545,7 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               onChanged: (c) {
                 setState(() {
                   _data['bottom_color'] = c;
+                  _data['bg_type'] = 'split';
                   if (_data['split_at'] == null) _data['split_at'] = 0.5;
                   _data.remove('color');
                   _data.remove('gradient');
@@ -1280,7 +1559,10 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
               min: 0.1, max: 0.9,
               valueFormatter: (v) => '${(v * 100).toInt()}%',
               onChanged: (v) {
-                setState(() => _data['split_at'] = v);
+                setState(() {
+                  _data['split_at'] = v;
+                  _data['bg_type'] = 'split';
+                });
                 _updateData();
               },
             ),
