@@ -941,27 +941,45 @@ class StyledActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: AppColors.surfaceMuted.withValues(alpha: 0.3),
-        borderRadius: AppRadius.br10,
+        color: AppColors.surfaceMuted.withValues(alpha: 0.5),
+        borderRadius: AppRadius.br12,
         child: InkWell(
-          borderRadius: AppRadius.br10,
+          borderRadius: AppRadius.br12,
           onTap: () {
             HapticFeedback.selectionClick();
             onTap();
           },
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderDefault),
-              borderRadius: AppRadius.br10,
+              border: Border.all(color: AppColors.borderSubtle, width: 1),
+              borderRadius: AppRadius.br12,
             ),
             child: Row(
               children: [
-                Icon(icon, size: 20, color: AppColors.accent),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentTint,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.accent.withValues(alpha: 0.25),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(icon, size: 16, color: AppColors.accent),
+                ),
                 const SizedBox(width: 12),
-                Text(label, style: AppText.labelLarge()),
+                Text(
+                  label,
+                  style: AppText.labelLarge().copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
                 const Spacer(),
                 const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.inkMuted),
               ],
@@ -1283,13 +1301,13 @@ class MockupStyleSelector extends StatelessWidget {
 
   const MockupStyleSelector({super.key, required this.value, required this.onChanged});
 
-  static const Map<String, String> _styles = {
-    'dynamic_island': 'Dynamic Island',
-    'bar_notch': 'Bar Notch',
-    'punch_hole': 'Punch Hole',
-    'flat': 'Flat (Android)',
-    'none': 'No Notch',
-  };
+  static const List<MapEntry<String, String>> _styles = [
+    MapEntry('dynamic_island', 'Dynamic Island'),
+    MapEntry('bar_notch', 'Bar Notch'),
+    MapEntry('punch_hole', 'Punch Hole'),
+    MapEntry('flat', 'Flat'),
+    MapEntry('none', 'No Notch'),
+  ];
 
   Widget _phoneSkeleton(String style, bool isSelected) {
     final color = isSelected ? AppColors.accent : AppColors.inkDisabled;
@@ -1300,22 +1318,22 @@ class MockupStyleSelector extends StatelessWidget {
       case 'dynamic_island':
         notch = Container(
           margin: const EdgeInsets.only(top: 3),
-          width: 11,
-          height: 3.5,
+          width: 10,
+          height: 3,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(1.5),
           ),
         );
       case 'bar_notch':
         notch = Container(
-          width: 14,
-          height: 4.5,
+          width: 12,
+          height: 4,
           decoration: BoxDecoration(
             color: color,
             borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(3),
-              bottomRight: Radius.circular(3),
+              bottomLeft: Radius.circular(2.5),
+              bottomRight: Radius.circular(2.5),
             ),
           ),
         );
@@ -1333,9 +1351,9 @@ class MockupStyleSelector extends StatelessWidget {
         notch = Align(
           alignment: Alignment.topLeft,
           child: Container(
-            margin: const EdgeInsets.only(top: 3, left: 4),
-            width: 3.5,
-            height: 3.5,
+            margin: const EdgeInsets.only(top: 3, left: 3),
+            width: 3,
+            height: 3,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -1348,15 +1366,15 @@ class MockupStyleSelector extends StatelessWidget {
     }
 
     return Container(
-      width: 28,
-      height: 48,
+      width: 26,
+      height: 44,
       decoration: BoxDecoration(
         color: frameColor,
         border: Border.all(
           color: color,
           width: isSelected ? 2.0 : 1.5,
         ),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(5),
       ),
       alignment: Alignment.topCenter,
       child: notch,
@@ -1366,47 +1384,69 @@ class MockupStyleSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Text('Mockup Style', style: AppText.labelLarge()),
         ),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: _styles.entries.map((e) {
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1.12,
+          ),
+          itemCount: _styles.length,
+          itemBuilder: (context, index) {
+            final e = _styles[index];
             final isSelected = e.key == value;
-            return GestureDetector(
-              onTap: () => onChanged(e.key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.accentTint : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.r10),
-                  border: Border.all(
-                    color: isSelected ? AppColors.accent : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    _phoneSkeleton(e.key, isSelected),
-                    const SizedBox(height: 6),
-                    Text(
-                      e.value,
-                      style: AppText.labelSmall(
-                        color: isSelected ? AppColors.accent : AppColors.inkMuted,
-                      ).copyWith(fontSize: 10, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500),
+            return Material(
+              color: isSelected ? AppColors.accentTint : AppColors.surfaceMuted.withValues(alpha: 0.45),
+              borderRadius: AppRadius.br12,
+              child: InkWell(
+                borderRadius: AppRadius.br12,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onChanged(e.key);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: AppRadius.br12,
+                    border: Border.all(
+                      color: isSelected ? AppColors.accent : AppColors.borderSubtle,
+                      width: isSelected ? 1.8 : 1.0,
                     ),
-                  ],
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _phoneSkeleton(e.key, isSelected),
+                      const SizedBox(height: 5),
+                      Text(
+                        e.value,
+                        style: AppText.labelSmall(
+                          color: isSelected ? AppColors.accent : AppColors.inkSecondary,
+                        ).copyWith(
+                          fontSize: 10.5,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
-          }).toList(),
+          },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ],
     );
   }

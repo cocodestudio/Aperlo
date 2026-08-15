@@ -1259,13 +1259,13 @@ class _FloatingPropertyDock extends StatelessWidget {
 
       case 'mockup_style':
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             StyledActionTile(
               label: 'Pick Image',
               icon: LucideIcons.image,
               onTap: onPickImage,
             ),
-            const SizedBox(height: 12),
             MockupStyleSelector(
               value: l['style'] as String? ?? 'dynamic_island',
               onChanged: (v) {
