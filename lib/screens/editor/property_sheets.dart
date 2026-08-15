@@ -378,7 +378,15 @@ class PropertySlider extends StatefulWidget {
   final ValueChanged<double> onChanged;
   final String Function(double)? valueFormatter;
 
-  const PropertySlider({super.key, required this.label, required this.value, required this.min, required this.max, required this.onChanged, this.valueFormatter});
+  const PropertySlider({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.valueFormatter,
+  });
 
   @override
   State<PropertySlider> createState() => _PropertySliderState();
@@ -387,10 +395,16 @@ class PropertySlider extends StatefulWidget {
 class _PropertySliderState extends State<PropertySlider> {
   bool _dragging = false;
 
-  void _updateValue(double localDx, double maxWidth) {
-    if (maxWidth <= 0) return;
-    final fraction = (localDx / maxWidth).clamp(0.0, 1.0);
-    widget.onChanged(widget.min + fraction * (widget.max - widget.min));
+  void _updateValue(double localDx, double trackWidth) {
+    if (trackWidth <= 0) return;
+    const thumbDiameter = 30.0;
+    const padding = 3.0;
+    final maxThumbOffset = trackWidth - thumbDiameter - (padding * 2);
+    if (maxThumbOffset <= 0) return;
+    final clampedX = (localDx - padding - (thumbDiameter / 2)).clamp(0.0, maxThumbOffset);
+    final fraction = (clampedX / maxThumbOffset).clamp(0.0, 1.0);
+    final newValue = widget.min + fraction * (widget.max - widget.min);
+    widget.onChanged(newValue);
   }
 
   @override
@@ -399,6 +413,10 @@ class _PropertySliderState extends State<PropertySlider> {
     final displayValue = widget.valueFormatter != null
         ? widget.valueFormatter!(widget.value)
         : widget.value.toStringAsFixed(2);
+
+    const trackHeight = 36.0;
+    const thumbDiameter = 30.0;
+    const padding = 3.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -412,88 +430,135 @@ class _PropertySliderState extends State<PropertySlider> {
               // Value badge pill
               AnimatedContainer(
                 duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
                 decoration: BoxDecoration(
                   color: _dragging ? AppColors.accent : AppColors.surfaceMuted,
                   borderRadius: BorderRadius.circular(AppRadius.full),
+                  border: Border.all(
+                    color: _dragging ? AppColors.accent : AppColors.borderSubtle,
+                    width: 1,
+                  ),
                 ),
                 child: Text(
                   displayValue,
-                  style: AppText.mono(color: _dragging ? AppColors.accentOn : AppColors.inkSecondary).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: AppText.mono(
+                    color: _dragging ? AppColors.accentOn : AppColors.inkSecondary,
+                  ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
               final trackWidth = constraints.maxWidth;
-              const thumbR = 11.0;
-              const trackH = 6.0;
+              final maxThumbOffset = trackWidth - thumbDiameter - (padding * 2);
+              final thumbLeft = padding + (fraction * maxThumbOffset).clamp(0.0, maxThumbOffset);
+              final fillWidth = thumbLeft + (thumbDiameter / 2);
+
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onPanStart: (_) => setState(() => _dragging = true),
+                onPanStart: (d) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _dragging = true);
+                  _updateValue(d.localPosition.dx, trackWidth);
+                },
                 onPanEnd: (_) => setState(() => _dragging = false),
                 onPanCancel: () => setState(() => _dragging = false),
                 onPanUpdate: (d) => _updateValue(d.localPosition.dx, trackWidth),
                 onTapDown: (d) {
+                  HapticFeedback.selectionClick();
                   setState(() => _dragging = true);
                   _updateValue(d.localPosition.dx, trackWidth);
                 },
                 onTapUp: (_) => setState(() => _dragging = false),
-                child: SizedBox(
-                  height: 36,
+                child: Container(
+                  height: trackHeight,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(trackHeight / 2),
+                    border: Border.all(
+                      color: _dragging ? AppColors.accent.withValues(alpha: 0.35) : AppColors.borderSubtle,
+                      width: 1.0,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: Stack(
                     alignment: Alignment.centerLeft,
-                    clipBehavior: Clip.none,
                     children: [
-                      // Track background
-                      Positioned.fill(
-                        top: (36 - trackH) / 2,
-                        bottom: (36 - trackH) / 2,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.borderSubtle,
-                            borderRadius: BorderRadius.circular(trackH / 2),
-                          ),
-                        ),
-                      ),
-                      // Active fill
+                      // ── Active Pill Fill ─────────────────────────────────
                       Positioned(
                         left: 0,
-                        top: (36 - trackH) / 2,
-                        bottom: (36 - trackH) / 2,
-                        width: fraction * trackWidth,
+                        top: 0,
+                        bottom: 0,
+                        width: fillWidth.clamp(0.0, trackWidth),
                         child: Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.accentTint, AppColors.accent],
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.accent.withValues(alpha: 0.75),
+                                AppColors.accent,
+                              ],
                             ),
-                            borderRadius: BorderRadius.circular(trackH / 2),
                           ),
                         ),
                       ),
-                      // Thumb
+
+                      // ── Floating Thumb ───────────────────────────────────
                       Positioned(
-                        left: (fraction * trackWidth - thumbR).clamp(0, trackWidth - thumbR * 2),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 100),
-                          width: thumbR * 2,
-                          height: thumbR * 2,
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppColors.accent,
-                              width: _dragging ? 2.5 : 2.0,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.accent.withValues(alpha: _dragging ? 0.35 : 0.18),
-                                blurRadius: _dragging ? 10 : 5,
-                                offset: const Offset(0, 2),
+                        left: thumbLeft,
+                        child: AnimatedScale(
+                          scale: _dragging ? 1.06 : 1.0,
+                          duration: const Duration(milliseconds: 120),
+                          child: Container(
+                            width: thumbDiameter,
+                            height: thumbDiameter,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _dragging ? AppColors.accent : AppColors.borderStrong,
+                                width: _dragging ? 2.2 : 1.5,
                               ),
-                            ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: _dragging ? 0.22 : 0.14),
+                                  blurRadius: _dragging ? 8 : 4,
+                                  spreadRadius: _dragging ? 1 : 0,
+                                  offset: const Offset(0, 1.5),
+                                ),
+                                if (_dragging)
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(alpha: 0.25),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 2.0,
+                                    height: 10.0,
+                                    decoration: BoxDecoration(
+                                      color: _dragging ? AppColors.accent : AppColors.inkDisabled,
+                                      borderRadius: BorderRadius.circular(1.0),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2.5),
+                                  Container(
+                                    width: 2.0,
+                                    height: 10.0,
+                                    decoration: BoxDecoration(
+                                      color: _dragging ? AppColors.accent : AppColors.inkDisabled,
+                                      borderRadius: BorderRadius.circular(1.0),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),

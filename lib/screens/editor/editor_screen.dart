@@ -1825,7 +1825,7 @@ class _LayersPanel extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                'Studio Layers',
+                                'Layers',
                                 style: AppText.headline2().copyWith(fontSize: 17),
                               ),
                               const SizedBox(width: 8),
