@@ -701,8 +701,23 @@ class _PhoneLayer extends StatelessWidget {
     final depth = _f(layer['depth'], 0.0) * (w / 390.0) * scale;
     final depthColor = _color(layer['depth_color'], const Color(0xFF0F0F10));
     final style = layer['style'] as String? ?? 'dynamic_island';
-    final shadow = layer['shadow'] != false;
+    final shadowStyle = layer['shadow_style'] as String?;
+    final shadow = layer['shadow'] != false && shadowStyle != 'none';
     final opacity = _f(layer['opacity'], 1.0);
+
+    // 3D Oval Floor Cast Shadow properties
+    final hasFloorShadow = layer['floor_shadow'] != false && layer['shadow'] != false;
+    final shadowDistance = _f(layer['shadow_distance'], 35.0) * (w / 390.0) * scale;
+    final shadowBlur = _f(layer['shadow_blur'], 22.0) * (w / 390.0) * scale;
+    final rawWidthRatio = layer['shadow_width_ratio'] ?? (layer['shadow_width'] != null ? _f(layer['shadow_width']) / 100 : null);
+    final shadowWidthRatio = _f(rawWidthRatio, 0.85);
+    final rawHeightRatio = layer['shadow_height_ratio'] ?? (layer['shadow_height'] != null ? _f(layer['shadow_height']) / 100 : null);
+    final shadowHeightRatio = _f(rawHeightRatio, 0.14);
+    final rawOpacity = layer['shadow_opacity'] != null && _f(layer['shadow_opacity']) > 1.0
+        ? _f(layer['shadow_opacity']) / 100.0
+        : layer['shadow_opacity'];
+    final shadowOpacity = _f(rawOpacity, 0.35);
+    final shadowColor = _color(layer['shadow_color'], Colors.black);
 
     Widget phone = _buildPhoneWidget(
       phoneW: phoneW,
@@ -714,6 +729,14 @@ class _PhoneLayer extends StatelessWidget {
       depthColor: depthColor,
       style: style,
       shadow: shadow,
+      shadowStyle: shadowStyle,
+      hasFloorShadow: hasFloorShadow,
+      shadowDistance: shadowDistance,
+      shadowBlur: shadowBlur,
+      shadowWidthRatio: shadowWidthRatio,
+      shadowHeightRatio: shadowHeightRatio,
+      shadowOpacity: shadowOpacity,
+      shadowColor: shadowColor,
       scale: scale,
     );
 
@@ -748,6 +771,14 @@ class _PhoneLayer extends StatelessWidget {
     required Color depthColor,
     required String style,
     required bool shadow,
+    String? shadowStyle,
+    bool hasFloorShadow = false,
+    double shadowDistance = 35.0,
+    double shadowBlur = 22.0,
+    double shadowWidthRatio = 0.85,
+    double shadowHeightRatio = 0.14,
+    double shadowOpacity = 0.35,
+    Color shadowColor = Colors.black,
     required double scale,
   }) {
     final innerW = phoneW - bezelThick * 2;
@@ -765,20 +796,30 @@ class _PhoneLayer extends StatelessWidget {
       }
     }
     if (shadow) {
-      shadows.add(BoxShadow(
-        color: Colors.black.withValues(alpha: 0.3),
-        blurRadius: 32 * (w / 390.0) * scale,
-        spreadRadius: -4 * (w / 390.0) * scale,
-        offset: Offset(depth + 0, depth + 16 * (w / 390.0) * scale),
-      ));
-      shadows.add(BoxShadow(
-        color: Colors.black.withValues(alpha: 0.12),
-        blurRadius: 8 * (w / 390.0) * scale,
-        offset: Offset(depth + 0, depth + 4 * (w / 390.0) * scale),
-      ));
+      final sf = (w / 390.0) * scale;
+      final d = depth > 0 ? depth : 0.0;
+      if (shadowStyle == 'subtle') {
+        shadows.add(BoxShadow(
+          color: Colors.black.withValues(alpha: 0.14),
+          blurRadius: 16 * sf,
+          offset: Offset(d + 0, d + 8 * sf),
+        ));
+      } else {
+        shadows.add(BoxShadow(
+          color: Colors.black.withValues(alpha: 0.22),
+          blurRadius: 32 * sf,
+          spreadRadius: -4 * sf,
+          offset: Offset(d + 0, d + 16 * sf),
+        ));
+        shadows.add(BoxShadow(
+          color: Colors.black.withValues(alpha: 0.10),
+          blurRadius: 8 * sf,
+          offset: Offset(d + 0, d + 4 * sf),
+        ));
+      }
     }
 
-    return Container(
+    Widget phoneFrame = Container(
       width: phoneW,
       height: phoneH,
       decoration: BoxDecoration(
@@ -806,11 +847,50 @@ class _PhoneLayer extends StatelessWidget {
                   right: 0,
                   child: _buildNotch(style, innerW),
                 ),
-              // Status bar overlay removed by user request
             ],
           ),
         ),
       ),
+    );
+
+    if (!hasFloorShadow) {
+      return phoneFrame;
+    }
+
+    final sWidth = phoneW * shadowWidthRatio;
+    final sHeight = phoneW * shadowHeightRatio;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        Positioned(
+          bottom: -(shadowDistance + sHeight / 2),
+          child: IgnorePointer(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(
+                sigmaX: math.max(0.1, shadowBlur),
+                sigmaY: math.max(0.1, shadowBlur),
+              ),
+              child: Container(
+                width: sWidth,
+                height: sHeight,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.elliptical(sWidth / 2, sHeight / 2)),
+                  gradient: RadialGradient(
+                    colors: [
+                      shadowColor.withValues(alpha: shadowOpacity.clamp(0.0, 1.0)),
+                      shadowColor.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 0.75],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        phoneFrame,
+      ],
     );
   }
 
