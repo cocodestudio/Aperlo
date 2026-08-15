@@ -109,6 +109,16 @@ class Template {
       }
     }
 
+    final rawTotalUses = originalMap['totalUses'] ?? map['totalUses'];
+    int parsedTotalUses = 0;
+    if (rawTotalUses is int) {
+      parsedTotalUses = rawTotalUses;
+    } else if (rawTotalUses is num) {
+      parsedTotalUses = rawTotalUses.toInt();
+    } else if (rawTotalUses is String) {
+      parsedTotalUses = int.tryParse(rawTotalUses) ?? 0;
+    }
+
     return Template(
         id: map['id'] as String? ?? '', 
         name: map['name'] as String? ?? 'Encrypted Template',
@@ -128,7 +138,7 @@ class Template {
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
         createdAt: _parseCreatedAt(map['createdAt']),
-        totalUses: map['totalUses'] as int? ?? 0,
+        totalUses: parsedTotalUses,
       );
   }
 }

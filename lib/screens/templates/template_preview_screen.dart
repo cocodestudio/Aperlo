@@ -3,7 +3,6 @@ import 'package:aperlo/widgets/adaptive_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import '../../core/theme/app_colors.dart';
@@ -267,11 +266,7 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
       }
 
       // Increment totalUses for this template in Firestore in the background
-      FirebaseFirestore.instance
-          .collection('templates')
-          .doc(widget.template.id)
-          .update({'totalUses': FieldValue.increment(1)})
-          .catchError((_) {});
+      ref.read(firestoreServiceProvider).incrementTemplateUses(widget.template.id);
 
       if (mounted) context.push('/editor/${screenshot.id}');
     } catch (e, stack) {

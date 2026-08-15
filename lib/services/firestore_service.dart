@@ -24,7 +24,13 @@ class FirestoreService {
     // Fetch all templates for the category at once to allow local sorting
     // without requiring Firestore composite indexes or missing field fallbacks.
     final snap = await q.get();
-    var templates = snap.docs.map((d) => Template.fromMap(d.data())).toList();
+    var templates = snap.docs.map((d) {
+      final data = Map<String, dynamic>.from(d.data());
+      if (!data.containsKey('id') || (data['id'] as String? ?? '').isEmpty) {
+        data['id'] = d.id;
+      }
+      return Template.fromMap(data);
+    }).toList();
     
     // Sort templates: Newest first (based on createdAt), then fallback to ID (newest first)
     templates.sort((a, b) {
@@ -46,10 +52,22 @@ class FirestoreService {
   Future<Template?> getTemplate(String id) async {
     final doc = await _templates.doc(id).get();
     if (!doc.exists) return null;
-    final data = doc.data()!;
+    final data = Map<String, dynamic>.from(doc.data()!);
     if (!data.containsKey('id') || (data['id'] as String? ?? '').isEmpty) {
       data['id'] = doc.id;
     }
     return Template.fromMap(data);
+  }
+
+  /// Increments the total uses counter for a template when used in the app
+  Future<void> incrementTemplateUses(String templateId) async {
+    if (templateId.isEmpty) return;
+    try {
+      await _templates.doc(templateId).update({
+        'totalUses': FieldValue.increment(1),
+      });
+    } catch (e) {
+      // Silently catch client network or permission error
+    }
   }
 }
