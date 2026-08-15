@@ -578,21 +578,20 @@ class _RecentScreenshotCardState extends State<_RecentScreenshotCard> {
 
 // ── Featured Template Card ───────────────────────────────────────────────────
 
-class _FeaturedTemplateCard extends ConsumerStatefulWidget {
+class _FeaturedTemplateCard extends StatefulWidget {
   const _FeaturedTemplateCard({required this.template});
   final Template template;
 
   @override
-  ConsumerState<_FeaturedTemplateCard> createState() => _FeaturedTemplateCardState();
+  State<_FeaturedTemplateCard> createState() => _FeaturedTemplateCardState();
 }
 
-class _FeaturedTemplateCardState extends ConsumerState<_FeaturedTemplateCard> {
+class _FeaturedTemplateCardState extends State<_FeaturedTemplateCard> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final t = widget.template;
-    final isNew = ref.watch(templateNewBadgeProvider(t));
 
     return Semantics(
       button: true,
@@ -634,8 +633,16 @@ class _FeaturedTemplateCardState extends ConsumerState<_FeaturedTemplateCard> {
                     ),
                   if (t.isPro)
                     const Positioned(top: 8, right: 8, child: ProBadge()),
-                  if (isNew)
-                    const Positioned(top: 8, left: 8, child: NewBadge()),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final isNew = ref.watch(templateNewBadgeProvider(t));
+                        return isNew ? const NewBadge() : const SizedBox.shrink();
+                      },
+                    ),
+                  ),
                   // Template name overlay at bottom
                   Positioned(
                     left: 0,

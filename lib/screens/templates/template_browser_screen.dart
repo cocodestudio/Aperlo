@@ -179,22 +179,21 @@ class _TemplateBrowserScreenState extends ConsumerState<TemplateBrowserScreen> {
 
 // ── Template Card ────────────────────────────────────────────────────────────
 
-class _TemplateCard extends ConsumerStatefulWidget {
+class _TemplateCard extends StatefulWidget {
   const _TemplateCard({required this.template, this.preselectedCollectionId});
   final Template template;
   final String? preselectedCollectionId;
 
   @override
-  ConsumerState<_TemplateCard> createState() => _TemplateCardState();
+  State<_TemplateCard> createState() => _TemplateCardState();
 }
 
-class _TemplateCardState extends ConsumerState<_TemplateCard> {
+class _TemplateCardState extends State<_TemplateCard> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final t = widget.template;
-    final isNew = ref.watch(templateNewBadgeProvider(t));
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -275,12 +274,16 @@ class _TemplateCardState extends ConsumerState<_TemplateCard> {
                 ),
 
               // NEW badge
-              if (isNew)
-                const Positioned(
-                  top: 8,
-                  left: 8,
-                  child: NewBadge(),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final isNew = ref.watch(templateNewBadgeProvider(t));
+                    return isNew ? const NewBadge() : const SizedBox.shrink();
+                  },
                 ),
+              ),
 
               // Lock overlay for premium
               if (t.isPro)
