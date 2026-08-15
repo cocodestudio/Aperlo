@@ -303,13 +303,14 @@ class _ContinueWorkingSection extends ConsumerWidget {
               ),
             ),
             SizedBox(
-              height: 140 * 16 / 9,
+              height: (140 * 16 / 9) + 20,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+                clipBehavior: Clip.none,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: 10),
                 physics: const BouncingScrollPhysics(),
                 itemCount: shots.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
                 itemBuilder: (_, i) =>
                     _RecentScreenshotCard(screenshot: shots[i]),
               ),
@@ -337,7 +338,7 @@ class _FeaturedTemplatesSection extends ConsumerWidget {
       children: [
         // Templates horizontal list (latest 5)
         SizedBox(
-          height: 160 * 16 / 9,
+          height: (160 * 16 / 9) + 20,
           child: templatesAsync.when(
             data: (templates) {
               final featured = templates.take(5).toList();
@@ -348,21 +349,24 @@ class _FeaturedTemplatesSection extends ConsumerWidget {
               }
               return ListView.separated(
                 scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.s16,
+                  vertical: 10,
                 ),
                 physics: const BouncingScrollPhysics(),
                 itemCount: featured.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                separatorBuilder: (context, index) => const SizedBox(width: 12),
                 itemBuilder: (context, i) =>
                     _FeaturedTemplateCard(template: featured[i]),
               );
             },
             loading: () => ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: 10),
               itemCount: 4,
-              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, _) =>
                   const SizedBox(width: 160, child: SkeletonCard()),
             ),
@@ -519,48 +523,50 @@ class _RecentScreenshotCardState extends State<_RecentScreenshotCard> {
                 border: Border.all(color: AppColors.borderSubtle),
                 boxShadow: AppShadows.card,
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: s.thumbnailUrl.isNotEmpty
-                        ? AdaptiveImage(
-                            key: ValueKey(s.updatedAt.millisecondsSinceEpoch),
-                            imageUrl: s.thumbnailUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                          )
-                        : Container(
-                            color: AppColors.surfaceMuted,
-                            child: const Center(
-                              child: Icon(
-                                LucideIcons.image,
-                                size: 28,
-                                color: AppColors.inkDisabled,
+              child: ClipRRect(
+                borderRadius: AppRadius.br12,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: s.thumbnailUrl.isNotEmpty
+                          ? AdaptiveImage(
+                              key: ValueKey(s.updatedAt.millisecondsSinceEpoch),
+                              imageUrl: s.thumbnailUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            )
+                          : Container(
+                              color: AppColors.surfaceMuted,
+                              child: const Center(
+                                child: Icon(
+                                  LucideIcons.image,
+                                  size: 28,
+                                  color: AppColors.inkDisabled,
+                                ),
                               ),
                             ),
-                          ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 7,
                     ),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: AppColors.borderSubtle),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 7,
+                      ),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.borderSubtle),
+                        ),
+                      ),
+                      child: Text(
+                        s.name,
+                        style: AppText.labelSmall(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    child: Text(
-                      s.name,
-                      style: AppText.labelSmall(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
