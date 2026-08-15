@@ -71,182 +71,179 @@ class AppOptionsModalSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
     final standardActions = actions.where((a) => !a.isDestructive).toList();
     final destructiveActions = actions.where((a) => a.isDestructive).toList();
 
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 520),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-          boxShadow: AppShadows.float,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Drag Handle Pill ───────────────────────────────────────────
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.borderStrong,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 520),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+        boxShadow: AppShadows.float,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Drag Handle Pill ───────────────────────────────────────────
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.borderStrong,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
+            ),
 
-              // ── Header Card (Optional) ─────────────────────────────────────
-              if (title != null) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                  child: Row(
-                    children: [
-                      if (headerIcon != null) ...[
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: (headerColor ?? AppColors.accent).withValues(alpha: 0.12),
-                            borderRadius: AppRadius.br10,
-                            border: Border.all(
-                              color: (headerColor ?? AppColors.accent).withValues(alpha: 0.25),
-                              width: 1,
-                            ),
-                          ),
-                          child: Icon(
-                            headerIcon,
-                            size: 18,
-                            color: headerColor ?? AppColors.accent,
+            // ── Header Card (Optional) ─────────────────────────────────────
+            if (title != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Row(
+                  children: [
+                    if (headerIcon != null) ...[
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: (headerColor ?? AppColors.accent).withValues(alpha: 0.12),
+                          borderRadius: AppRadius.br10,
+                          border: Border.all(
+                            color: (headerColor ?? AppColors.accent).withValues(alpha: 0.25),
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                      ],
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        child: Icon(
+                          headerIcon,
+                          size: 18,
+                          color: headerColor ?? AppColors.accent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title!,
+                            style: AppText.headline2().copyWith(fontSize: 17),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
                             Text(
-                              title!,
-                              style: AppText.headline2().copyWith(fontSize: 17),
+                              subtitle!,
+                              style: AppText.bodySmall(color: AppColors.inkMuted),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            if (subtitle != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                subtitle!,
-                                style: AppText.bodySmall(color: AppColors.inkMuted),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: AppColors.surfaceMuted,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkPrimary),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkPrimary),
                       ),
-                    ],
-                  ),
-                ),
-                const Divider(color: AppColors.borderSubtle, height: 1),
-                const SizedBox(height: 8),
-              ],
-
-              // ── Grouped Actions List ───────────────────────────────────────
-              Flexible(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(16, 4, 16, bottomInset + 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Standard Options Group
-                      if (standardActions.isNotEmpty)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceMuted.withValues(alpha: 0.4),
-                            borderRadius: AppRadius.br16,
-                            border: Border.all(color: AppColors.borderSubtle),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: List.generate(standardActions.length, (i) {
-                              final action = standardActions[i];
-                              final isLast = i == standardActions.length - 1;
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _OptionTile(action: action),
-                                  if (!isLast)
-                                    const Divider(
-                                      color: AppColors.borderSubtle,
-                                      height: 1,
-                                      indent: 56,
-                                      endIndent: 16,
-                                    ),
-                                ],
-                              );
-                            }),
-                          ),
-                        ),
-
-                      // Destructive Options Group (Visually separated)
-                      if (destructiveActions.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.destructive.withValues(alpha: 0.05),
-                            borderRadius: AppRadius.br16,
-                            border: Border.all(
-                              color: AppColors.destructive.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: List.generate(destructiveActions.length, (i) {
-                              final action = destructiveActions[i];
-                              final isLast = i == destructiveActions.length - 1;
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _OptionTile(action: action),
-                                  if (!isLast)
-                                    Divider(
-                                      color: AppColors.destructive.withValues(alpha: 0.15),
-                                      height: 1,
-                                      indent: 56,
-                                      endIndent: 16,
-                                    ),
-                                ],
-                              );
-                            }),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+              const Divider(color: AppColors.borderSubtle, height: 1),
+              const SizedBox(height: 8),
             ],
-          ),
+
+            // ── Grouped Actions List ───────────────────────────────────────
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Standard Options Group
+                    if (standardActions.isNotEmpty)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted.withValues(alpha: 0.4),
+                          borderRadius: AppRadius.br16,
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: List.generate(standardActions.length, (i) {
+                            final action = standardActions[i];
+                            final isLast = i == standardActions.length - 1;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _OptionTile(action: action),
+                                if (!isLast)
+                                  const Divider(
+                                    color: AppColors.borderSubtle,
+                                    height: 1,
+                                    indent: 56,
+                                    endIndent: 16,
+                                  ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+
+                    // Destructive Options Group (Visually separated)
+                    if (destructiveActions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.destructive.withValues(alpha: 0.05),
+                          borderRadius: AppRadius.br16,
+                          border: Border.all(
+                            color: AppColors.destructive.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: List.generate(destructiveActions.length, (i) {
+                            final action = destructiveActions[i];
+                            final isLast = i == destructiveActions.length - 1;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _OptionTile(action: action),
+                                if (!isLast)
+                                  Divider(
+                                    color: AppColors.destructive.withValues(alpha: 0.15),
+                                    height: 1,
+                                    indent: 56,
+                                    endIndent: 16,
+                                  ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

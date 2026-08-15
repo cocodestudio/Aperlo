@@ -526,20 +526,17 @@ class _CollectionPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 520),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-          boxShadow: AppShadows.float,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          top: false,
-          child: Column(
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 520),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+        boxShadow: AppShadows.float,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SafeArea(
+        top: false,
+        child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -639,7 +636,7 @@ class _CollectionPickerSheet extends StatelessWidget {
                     : ListView.separated(
                         shrinkWrap: true,
                         physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                         itemCount: collections.length,
                         separatorBuilder: (context, index) => const SizedBox(height: 8),
                         itemBuilder: (context, i) {
@@ -710,7 +707,6 @@ class _CollectionPickerSheet extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

@@ -184,16 +184,14 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
     final g = (curColor.g * 255.0).round();
     final b = (curColor.b * 255.0).round();
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 520),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
-          boxShadow: AppShadows.float,
-        ),
-        child: Column(
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 520),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+        boxShadow: AppShadows.float,
+      ),
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag handle pill
@@ -444,9 +442,8 @@ class _CustomColorPickerDialogState extends State<CustomColorPickerDialog> {
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
