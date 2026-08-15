@@ -501,6 +501,8 @@ class _Background extends StatelessWidget {
   }
 
   static String _inferBgType(Map<String, dynamic> l) {
+    final explicit = (l['bg_type'] as String?)?.toLowerCase();
+    if (explicit != null && explicit.isNotEmpty) return explicit;
     if (l['grid'] == true || l['grid_spacing'] != null || l['grid_line_width'] != null) return 'grid';
     if (l['dots'] == true || l['dot_spacing'] != null || l['dot_size'] != null) return 'dots';
     if (l['stripes'] == true || l['stripe_spacing'] != null || l['stripe_width'] != null) return 'stripes';

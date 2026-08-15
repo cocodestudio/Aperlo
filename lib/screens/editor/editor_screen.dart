@@ -1710,13 +1710,26 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
   static const _types = ['Solid', 'Gradient', 'Grid', 'Dots', 'Stripes', 'Rays', 'Split'];
 
   String _currentType(Map<String, dynamic> l) {
-    final bgType = l['bg_type'] as String?;
-    if (bgType == 'grid' || l['grid'] == true || l['grid_spacing'] != null) return 'Grid';
-    if (bgType == 'dots' || l['dots'] == true || l['dot_spacing'] != null) return 'Dots';
-    if (bgType == 'stripes' || l['stripes'] == true || l['stripe_spacing'] != null) return 'Stripes';
-    if (bgType == 'rays' || l['rays'] == true || l['ray_count'] != null) return 'Rays';
-    if (bgType == 'split' || l['split_at'] != null) return 'Split';
-    if (bgType == 'linear' || bgType == 'radial' || l['gradient'] != null || l['radial_gradient'] != null) return 'Gradient';
+    final bgType = (l['bg_type'] as String?)?.toLowerCase();
+    if (bgType != null && bgType.isNotEmpty) {
+      switch (bgType) {
+        case 'grid': return 'Grid';
+        case 'dots': return 'Dots';
+        case 'stripes': return 'Stripes';
+        case 'rays': return 'Rays';
+        case 'split': return 'Split';
+        case 'linear':
+        case 'radial':
+        case 'gradient': return 'Gradient';
+        case 'solid': return 'Solid';
+      }
+    }
+    if (l['grid_spacing'] != null || l['grid'] == true) return 'Grid';
+    if (l['dot_spacing'] != null || l['dots'] == true) return 'Dots';
+    if (l['stripe_spacing'] != null || l['stripes'] == true) return 'Stripes';
+    if (l['ray_count'] != null || l['rays'] == true) return 'Rays';
+    if (l['split_at'] != null) return 'Split';
+    if (l['gradient'] != null || l['radial_gradient'] != null) return 'Gradient';
     return 'Solid';
   }
 
@@ -1742,55 +1755,76 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
               return GestureDetector(
                 onTap: () {
                   final newLayer = Map<String, dynamic>.from(l);
-                  // Clean specialized keys
+                  // Clean all specialized keys to prevent cross-contamination
                   newLayer.remove('split_at');
                   newLayer.remove('top_color');
                   newLayer.remove('bottom_color');
                   newLayer.remove('radial_gradient');
                   newLayer.remove('gradient');
+                  newLayer.remove('grid_line_width');
+                  newLayer.remove('grid_spacing');
+                  newLayer.remove('grid_opacity');
+                  newLayer.remove('grid_angle');
+                  newLayer.remove('grid_color');
+                  newLayer.remove('grid');
+                  newLayer.remove('dot_size');
+                  newLayer.remove('dot_spacing');
+                  newLayer.remove('dot_opacity');
+                  newLayer.remove('dot_color');
+                  newLayer.remove('dots');
+                  newLayer.remove('stripe_width');
+                  newLayer.remove('stripe_spacing');
+                  newLayer.remove('stripe_opacity');
+                  newLayer.remove('stripe_angle');
+                  newLayer.remove('stripe_color');
+                  newLayer.remove('stripes');
+                  newLayer.remove('ray_count');
+                  newLayer.remove('ray_opacity');
+                  newLayer.remove('ray_color');
+                  newLayer.remove('rays');
 
                   if (type == 'Solid') {
                     newLayer['bg_type'] = 'solid';
                     newLayer['color'] = newLayer['color'] ?? newLayer['bg_color'] ?? '#FAF9F6';
                   } else if (type == 'Gradient') {
                     newLayer['bg_type'] = 'linear';
-                    newLayer['gradient'] = newLayer['gradient'] ?? ['#0082FF', '#0040A3'];
-                    newLayer['begin'] = newLayer['begin'] ?? 'topCenter';
-                    newLayer['end'] = newLayer['end'] ?? 'bottomCenter';
+                    newLayer['gradient'] = ['#0082FF', '#0040A3'];
+                    newLayer['begin'] = 'topCenter';
+                    newLayer['end'] = 'bottomCenter';
                   } else if (type == 'Grid') {
                     newLayer['bg_type'] = 'grid';
                     newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['grid_color'] = newLayer['grid_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
-                    newLayer['grid_line_width'] = newLayer['grid_line_width'] ?? 1.5;
-                    newLayer['grid_spacing'] = newLayer['grid_spacing'] ?? 32.0;
-                    newLayer['grid_opacity'] = newLayer['grid_opacity'] ?? 0.15;
-                    newLayer['grid_angle'] = newLayer['grid_angle'] ?? 0.0;
+                    newLayer['grid_color'] = newLayer['grid_color'] ?? '#1A6B4A';
+                    newLayer['grid_line_width'] = 1.5;
+                    newLayer['grid_spacing'] = 32.0;
+                    newLayer['grid_opacity'] = 0.15;
+                    newLayer['grid_angle'] = 0.0;
                   } else if (type == 'Dots') {
                     newLayer['bg_type'] = 'dots';
                     newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['dot_color'] = newLayer['dot_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
-                    newLayer['dot_size'] = newLayer['dot_size'] ?? 3.0;
-                    newLayer['dot_spacing'] = newLayer['dot_spacing'] ?? 24.0;
-                    newLayer['dot_opacity'] = newLayer['dot_opacity'] ?? 0.20;
+                    newLayer['dot_color'] = newLayer['dot_color'] ?? '#1A6B4A';
+                    newLayer['dot_size'] = 3.0;
+                    newLayer['dot_spacing'] = 24.0;
+                    newLayer['dot_opacity'] = 0.20;
                   } else if (type == 'Stripes') {
                     newLayer['bg_type'] = 'stripes';
                     newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['stripe_color'] = newLayer['stripe_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
-                    newLayer['stripe_width'] = newLayer['stripe_width'] ?? 8.0;
-                    newLayer['stripe_spacing'] = newLayer['stripe_spacing'] ?? 28.0;
-                    newLayer['stripe_opacity'] = newLayer['stripe_opacity'] ?? 0.15;
-                    newLayer['stripe_angle'] = newLayer['stripe_angle'] ?? 45.0;
+                    newLayer['stripe_color'] = newLayer['stripe_color'] ?? '#1A6B4A';
+                    newLayer['stripe_width'] = 8.0;
+                    newLayer['stripe_spacing'] = 28.0;
+                    newLayer['stripe_opacity'] = 0.15;
+                    newLayer['stripe_angle'] = 45.0;
                   } else if (type == 'Rays') {
                     newLayer['bg_type'] = 'rays';
                     newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['ray_color'] = newLayer['ray_color'] ?? newLayer['pattern_color'] ?? '#1A6B4A';
-                    newLayer['ray_count'] = newLayer['ray_count'] ?? 16;
-                    newLayer['ray_opacity'] = newLayer['ray_opacity'] ?? 0.15;
+                    newLayer['ray_color'] = newLayer['ray_color'] ?? '#1A6B4A';
+                    newLayer['ray_count'] = 16;
+                    newLayer['ray_opacity'] = 0.15;
                   } else if (type == 'Split') {
                     newLayer['bg_type'] = 'split';
-                    newLayer['top_color'] = newLayer['top_color'] ?? '#FAF9F6';
-                    newLayer['bottom_color'] = newLayer['bottom_color'] ?? '#F5F7F5';
-                    newLayer['split_at'] = newLayer['split_at'] ?? 0.5;
+                    newLayer['top_color'] = '#FAF9F6';
+                    newLayer['bottom_color'] = '#F5F7F5';
+                    newLayer['split_at'] = 0.5;
                   }
                   widget.onUpdateLayer(newLayer);
                 },
