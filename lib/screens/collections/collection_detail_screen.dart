@@ -15,7 +15,6 @@ import '../../widgets/skeleton_loader.dart';
 import '../export/export_screen.dart';
 import '../../widgets/app_toast.dart';
 import '../../widgets/app_text_field.dart';
-import '../../widgets/bottom_nav.dart';
 import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
@@ -57,8 +56,9 @@ class CollectionDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: getFloatingBottomNavFabClearance(context)),
+        padding: const EdgeInsets.only(left: AppSpacing.s8, bottom: AppSpacing.s8),
         child: FloatingActionButton(
           onPressed: () => context.go('/templates', extra: collectionId),
           backgroundColor: AppColors.accent,
@@ -81,7 +81,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                 physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                 slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.all(AppSpacing.s16),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s16, AppSpacing.s16, 96),
                     sliver: SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
@@ -98,7 +98,7 @@ class CollectionDetailScreen extends ConsumerWidget {
                 ],
               ),
         loading: () => GridView.builder(
-          padding: const EdgeInsets.all(AppSpacing.s16),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s16, AppSpacing.s16, 96),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
             mainAxisSpacing: 16,

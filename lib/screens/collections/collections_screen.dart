@@ -17,7 +17,6 @@ import '../../widgets/app_toast.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../widgets/app_text_field.dart';
-import '../../widgets/bottom_nav.dart';
 import '../../widgets/options_modal_sheet.dart';
 import 'package:uuid/uuid.dart';
 
@@ -54,17 +53,15 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
         title: Text('Collections', style: AppText.headline1()),
         elevation: 0,
         scrolledUnderElevation: 0,
-      ),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(bottom: getFloatingBottomNavFabClearance(context)),
-        child: FloatingActionButton(
-          onPressed: () => _showNewCollectionDialog(context),
-          shape: const CircleBorder(),
-          backgroundColor: AppColors.accent,
-          elevation: 4,
-          highlightElevation: 8,
-          child: const Icon(LucideIcons.plus, color: AppColors.accentOn),
-        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.s16),
+            child: _HeaderAction(
+              icon: LucideIcons.plus,
+              onTap: () => _showNewCollectionDialog(context),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
