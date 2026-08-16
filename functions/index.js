@@ -1,43 +1,44 @@
-const functions = require("firebase-functions/v1");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 
-exports.notifyNewTemplate = functions.firestore
-    .document("templates/{templateId}")
-    .onCreate(async (snapshot, context) => {
-        const templateData = snapshot.data() || {};
-        const templateName = templateData.name || "A new template";
-        const templateId = context.params.templateId;
+exports.notifyNewTemplate = onDocumentCreated("templates/{templateId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
 
-        const payload = {
+    const templateData = snapshot.data() || {};
+    const templateName = templateData.name || "A new template";
+    const templateId = event.params.templateId;
+
+    const payload = {
+        notification: {
+            title: "New Template Added!",
+            body: `Check out the new ${templateName} template.`,
+        },
+        data: {
+            templateId: templateId,
+            title: "New Template Added!",
+            body: `Check out the new ${templateName} template.`,
+        },
+        android: {
+            priority: "high",
             notification: {
-                title: "New Template Added!",
-                body: `Check out the new ${templateName} template.`,
-            },
-            data: {
-                templateId: templateId,
-                title: "New Template Added!",
-                body: `Check out the new ${templateName} template.`,
-            },
-            android: {
+                channelId: "new_templates_channel",
                 priority: "high",
-                notification: {
-                    channelId: "new_templates_channel",
-                    priority: "high",
-                    icon: "ic_notification",
-                    color: "#1A6B4A",
-                    defaultSound: true,
-                    defaultVibrateTimings: true,
-                },
+                icon: "ic_notification",
+                color: "#1A6B4A",
+                defaultSound: true,
+                defaultVibrateTimings: true,
             },
-            topic: "all_users",
-        };
+        },
+        topic: "all_users",
+    };
 
-        try {
-            await admin.messaging().send(payload);
-            console.log(`Successfully sent notification for template ${templateId}`);
-        } catch (error) {
-            console.error("Error sending notification:", error);
-        }
-    });
+    try {
+        await admin.messaging().send(payload);
+        console.log(`Successfully sent notification for template ${templateId}`);
+    } catch (error) {
+        console.error("Error sending notification:", error);
+    }
+});
