@@ -1,30 +1,30 @@
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
-// v1.0.1 - Global Admin App Initialization
+
 admin.initializeApp();
 
 exports.notifyNewTemplate = functions.firestore
-    .document('templates/{templateId}')
+    .document("templates/{templateId}")
     .onCreate(async (snapshot, context) => {
+        const templateData = snapshot.data() || {};
+        const templateName = templateData.name || "A new template";
+        const templateId = context.params.templateId;
 
-    const templateData = snapshot.data();
-    const templateName = templateData.name || "A new template";
-    
-    const payload = {
-        notification: {
-            title: "New Template Added!",
-            body: `Check out the new ${templateName} template.`,
-        },
-        data: {
-            templateId: context.params.templateId
-        },
-        topic: "all_users"
-    };
-    
-    try {
-        await admin.messaging().send(payload);
-        console.log(`Successfully sent notification for template ${context.params.templateId}`);
-    } catch (error) {
-        console.error("Error sending notification:", error);
-    }
-});
+        const payload = {
+            notification: {
+                title: "New Template Added!",
+                body: `Check out the new ${templateName} template.`,
+            },
+            data: {
+                templateId: templateId,
+            },
+            topic: "all_users",
+        };
+
+        try {
+            await admin.messaging().send(payload);
+            console.log(`Successfully sent notification for template ${templateId}`);
+        } catch (error) {
+            console.error("Error sending notification:", error);
+        }
+    });
