@@ -17,6 +17,19 @@ exports.notifyNewTemplate = functions.firestore
             },
             data: {
                 templateId: templateId,
+                title: "New Template Added!",
+                body: `Check out the new ${templateName} template.`,
+            },
+            android: {
+                priority: "high",
+                notification: {
+                    channelId: "new_templates_channel",
+                    priority: "high",
+                    icon: "ic_notification",
+                    color: "#1A6B4A",
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
+                },
             },
             topic: "all_users",
         };

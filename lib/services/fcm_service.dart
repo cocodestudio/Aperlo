@@ -42,13 +42,37 @@ class FCMService {
       onDidReceiveNotificationResponse: _onSelectNotification,
     );
 
+    // Create high importance notification channel on Android
+    final androidImplementation = _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'new_templates_channel',
+          'New Templates',
+          description: 'Notifications when new templates are uploaded',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+      try {
+        await androidImplementation.requestNotificationsPermission();
+      } catch (_) {}
+    }
+
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Handle messages while the app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      if (message.notification != null) {
-        _showNotification(message);
-      }
+      _showNotification(message);
     });
 
     // Handle messages when app is opened from background state
@@ -67,20 +91,28 @@ class FCMService {
   }
 
   static void _showNotification(RemoteMessage message) async {
+    final title = message.notification?.title ?? message.data['title'] ?? 'New Template Added!';
+    final body = message.notification?.body ?? message.data['body'] ?? 'Check out the new template.';
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'new_templates_channel',
       'New Templates',
+      channelDescription: 'Notifications when new templates are uploaded',
       importance: Importance.max,
       priority: Priority.high,
+      icon: '@drawable/ic_notification',
+      color: Color(0xFF1A6B4A),
+      playSound: true,
+      enableVibration: true,
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _localNotificationsPlugin.show(
       id: message.hashCode,
-      title: message.notification?.title,
-      body: message.notification?.body,
+      title: title,
+      body: body,
       notificationDetails: platformChannelSpecifics,
       payload: jsonEncode(message.data),
     );
