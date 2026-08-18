@@ -203,6 +203,15 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
   Future<void> _useTemplate() async {
     final collections = ref.read(collectionsProvider).valueOrNull ?? [];
 
+    // If navigated from a specific collection, directly use that collection without prompting
+    if (widget.preselectedCollectionId != null && widget.preselectedCollectionId!.isNotEmpty) {
+      final targetId = widget.preselectedCollectionId!;
+      final col = collections.firstWhereOrNull((c) => c.id == targetId) ?? 
+                  ref.read(localDataServiceProvider).getCollection(targetId);
+      await _createScreenshotInCollection(targetId, col);
+      return;
+    }
+
     if (collections.isEmpty) {
       final newName = await _showCreateCollectionDialog();
       if (newName == null || !mounted) return;

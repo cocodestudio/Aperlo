@@ -222,6 +222,19 @@ class DynamicTemplate extends StatelessWidget {
           deviceFrameColor: deviceFrameColor,
           isSelected: isSelected,
         );
+      case 'pattern':
+      case 'pattern_overlay':
+        return _PatternOverlayLayer(
+          layer: layer,
+          w: w,
+          h: h,
+          isSelected: isSelected,
+          index: index,
+          onTap: onTap,
+          onPanUpdate: onPanUpdate,
+          onPanEnd: (isSelected && onPanEndLayer != null) ? () => onPanEndLayer!(index) : null,
+          onLongPress: null,
+        );
       case 'shape':
         return _ShapeLayer(
           layer: layer,
@@ -429,7 +442,23 @@ class _Background extends StatelessWidget {
 
     // ── Split background ──────────────────────────────────────────────────
     final splitAt = _f(layer['split_at']);
+    final warp = _f(layer['bg_warp'], 0.0);
     if (bgType == 'split' || splitAt > 0) {
+      if (warp > 0) {
+        return SizedBox(
+          width: w,
+          height: h,
+          child: CustomPaint(
+            size: Size(w, h),
+            painter: _WarpSplitPainter(
+              topColor: _color(layer['top_color'] ?? layer['color'], const Color(0xFFFAF9F6)),
+              bottomColor: _color(layer['bottom_color'], const Color(0xFFF5F7F5)),
+              splitAt: splitAt > 0 ? splitAt : 0.5,
+              warp: warp,
+            ),
+          ),
+        );
+      }
       return SizedBox(
         width: w,
         height: h,
@@ -453,6 +482,21 @@ class _Background extends StatelessWidget {
       final rColors = radialColors != null && radialColors.length >= 2
           ? radialColors.map((c) => _color(c)).toList()
           : [_color(layer['color'], const Color(0xFF0082FF)), _color(layer['end_color'], const Color(0xFF0040A3))];
+      if (warp > 0) {
+        return SizedBox(
+          width: w,
+          height: h,
+          child: CustomPaint(
+            size: Size(w, h),
+            painter: _WarpGradientPainter(
+              colors: rColors,
+              begin: _alignment(layer['radial_center'] as String?),
+              end: Alignment.bottomRight,
+              warp: warp,
+            ),
+          ),
+        );
+      }
       return Container(
         width: w,
         height: h,
@@ -476,6 +520,21 @@ class _Background extends StatelessWidget {
       final gColors = gradColors != null && gradColors.length >= 2
           ? gradColors.map((c) => _color(c)).toList()
           : [_color(layer['color'], const Color(0xFF0082FF)), _color(layer['end_color'], const Color(0xFF0040A3))];
+      if (warp > 0) {
+        return SizedBox(
+          width: w,
+          height: h,
+          child: CustomPaint(
+            size: Size(w, h),
+            painter: _WarpGradientPainter(
+              colors: gColors,
+              begin: _alignment(layer['begin'] as String?),
+              end: _alignment(layer['end'] as String? ?? 'bottomCenter'),
+              warp: warp,
+            ),
+          ),
+        );
+      }
       return Container(
         width: w,
         height: h,
@@ -514,6 +573,98 @@ class _Background extends StatelessWidget {
   }
 }
 
+class _WarpSplitPainter extends CustomPainter {
+  const _WarpSplitPainter({
+    required this.topColor,
+    required this.bottomColor,
+    required this.splitAt,
+    required this.warp,
+  });
+
+  final Color topColor;
+  final Color bottomColor;
+  final double splitAt;
+  final double warp;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = (size.width / 375.0).clamp(0.2, 20.0);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = bottomColor);
+    final splitY = size.height * splitAt;
+    final topPath = Path()
+      ..moveTo(0, 0)
+      ..lineTo(0, splitY);
+    final stepX = (10.0 * scale).clamp(2.0, 30.0);
+    for (double x = 0; x <= size.width + stepX; x += stepX) {
+      final wave = (math.sin((x / size.width) * 2 * math.pi) * (50.0 * warp) +
+          math.cos((x / size.width) * 4 * math.pi) * (20.0 * warp)) * scale;
+      topPath.lineTo(x, splitY + wave);
+    }
+    topPath
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawPath(topPath, Paint()..color = topColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WarpSplitPainter old) =>
+      old.topColor != topColor ||
+      old.bottomColor != bottomColor ||
+      old.splitAt != splitAt ||
+      old.warp != warp;
+}
+
+class _WarpGradientPainter extends CustomPainter {
+  const _WarpGradientPainter({
+    required this.colors,
+    required this.begin,
+    required this.end,
+    required this.warp,
+  });
+
+  final List<Color> colors;
+  final Alignment begin;
+  final Alignment end;
+  final double warp;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = (size.width / 375.0).clamp(0.2, 20.0);
+    final basePaint = Paint()
+      ..shader = LinearGradient(begin: begin, end: end, colors: colors)
+          .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), basePaint);
+
+    final c1 = colors.first.withValues(alpha: (0.45 * warp).clamp(0.0, 1.0));
+    final c2 = colors.last.withValues(alpha: (0.55 * warp).clamp(0.0, 1.0));
+
+    final stepX = (10.0 * scale).clamp(2.0, 30.0);
+    final wavePath1 = Path()..moveTo(0, size.height);
+    for (double x = 0; x <= size.width + stepX; x += stepX) {
+      final y = size.height * 0.5 + math.sin((x / size.width) * 2 * math.pi) * (70.0 * warp * scale);
+      wavePath1.lineTo(x, y);
+    }
+    wavePath1
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(wavePath1, Paint()..color = c2);
+
+    final wavePath2 = Path()..moveTo(0, 0);
+    for (double x = 0; x <= size.width + stepX; x += stepX) {
+      final y = size.height * 0.35 + math.cos((x / size.width) * 2.5 * math.pi) * (60.0 * warp * scale);
+      wavePath2.lineTo(x, y);
+    }
+    wavePath2
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawPath(wavePath2, Paint()..color = c1);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WarpGradientPainter old) =>
+      old.colors != colors || old.begin != begin || old.end != end || old.warp != warp;
+}
+
 class _BackgroundPatternPainter extends CustomPainter {
   const _BackgroundPatternPainter({
     required this.layer,
@@ -543,7 +694,8 @@ class _BackgroundPatternPainter extends CustomPainter {
       );
     }
 
-    final scale = size.width / 375.0;
+    final scale = (size.width / 375.0).clamp(0.2, 20.0);
+    final warp = _f(layer['bg_warp'], 0.0);
 
     // 2. Draw Pattern Overlay
     switch (bgType) {
@@ -567,20 +719,64 @@ class _BackgroundPatternPainter extends CustomPainter {
           canvas.translate(size.width / 2, size.height / 2);
           canvas.rotate(gridAngle * math.pi / 180);
           final diag = math.sqrt(size.width * size.width + size.height * size.height);
+          final stepY = (15.0 * scale).clamp(4.0, 40.0);
           
-          for (double x = -diag; x <= diag; x += spacing) {
-            canvas.drawLine(Offset(x, -diag), Offset(x, diag), gridPaint);
-          }
-          for (double y = -diag; y <= diag; y += spacing) {
-            canvas.drawLine(Offset(-diag, y), Offset(diag, y), gridPaint);
+          if (warp > 0) {
+            for (double x = -diag; x <= diag; x += spacing) {
+              final path = Path();
+              path.moveTo(x + math.sin((-diag / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale), -diag);
+              for (double y = -diag + stepY; y <= diag; y += stepY) {
+                final dx = math.sin((y / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x + dx, y);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+            for (double y = -diag; y <= diag; y += spacing) {
+              final path = Path();
+              path.moveTo(-diag, y + math.cos((-diag / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale));
+              for (double x = -diag + stepY; x <= diag; x += stepY) {
+                final dy = math.cos((x / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x, y + dy);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+          } else {
+            for (double x = -diag; x <= diag; x += spacing) {
+              canvas.drawLine(Offset(x, -diag), Offset(x, diag), gridPaint);
+            }
+            for (double y = -diag; y <= diag; y += spacing) {
+              canvas.drawLine(Offset(-diag, y), Offset(diag, y), gridPaint);
+            }
           }
           canvas.restore();
         } else {
-          for (double x = 0; x <= size.width + 1; x += spacing) {
-            canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-          }
-          for (double y = 0; y <= size.height + 1; y += spacing) {
-            canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+          final stepY = (15.0 * scale).clamp(4.0, 40.0);
+          if (warp > 0) {
+            for (double x = 0; x <= size.width + spacing; x += spacing) {
+              final path = Path();
+              path.moveTo(x + math.sin(x / (60.0 * scale)) * (30.0 * warp * scale), 0);
+              for (double y = stepY; y <= size.height + stepY; y += stepY) {
+                final dx = math.sin((y / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x + dx, y);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+            for (double y = 0; y <= size.height + spacing; y += spacing) {
+              final path = Path();
+              path.moveTo(0, y + math.cos(y / (60.0 * scale)) * (30.0 * warp * scale));
+              for (double x = stepY; x <= size.width + stepY; x += stepY) {
+                final dy = math.cos((x / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x, y + dy);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+          } else {
+            for (double x = 0; x <= size.width + 1; x += spacing) {
+              canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+            }
+            for (double y = 0; y <= size.height + 1; y += spacing) {
+              canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+            }
           }
         }
         break;
@@ -600,7 +796,9 @@ class _BackgroundPatternPainter extends CustomPainter {
 
         for (double x = spacing / 2; x < size.width + spacing; x += spacing) {
           for (double y = spacing / 2; y < size.height + spacing; y += spacing) {
-            canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
+            final dx = warp > 0 ? math.sin((y / (40.0 * scale)) + (x / (50.0 * scale))) * (25.0 * warp * scale) : 0.0;
+            final dy = warp > 0 ? math.cos((x / (40.0 * scale)) + (y / (50.0 * scale))) * (25.0 * warp * scale) : 0.0;
+            canvas.drawCircle(Offset(x + dx, y + dy), dotRadius, dotPaint);
           }
         }
         break;
@@ -625,9 +823,22 @@ class _BackgroundPatternPainter extends CustomPainter {
         canvas.rotate(stripeAngle * math.pi / 180);
         final diag = math.sqrt(size.width * size.width + size.height * size.height);
         final step = spacing + stripeWidth;
+        final stepY = (15.0 * scale).clamp(4.0, 40.0);
 
-        for (double x = -diag; x <= diag; x += step) {
-          canvas.drawLine(Offset(x, -diag), Offset(x, diag), stripePaint);
+        if (warp > 0) {
+          for (double x = -diag; x <= diag; x += step) {
+            final path = Path();
+            path.moveTo(x + math.sin(-diag / (40.0 * scale)) * (25.0 * warp * scale), -diag);
+            for (double y = -diag + stepY; y <= diag; y += stepY) {
+              final dx = math.sin(y / (40.0 * scale)) * (25.0 * warp * scale);
+              path.lineTo(x + dx, y);
+            }
+            canvas.drawPath(path, stripePaint);
+          }
+        } else {
+          for (double x = -diag; x <= diag; x += step) {
+            canvas.drawLine(Offset(x, -diag), Offset(x, diag), stripePaint);
+          }
         }
         canvas.restore();
         break;
@@ -644,23 +855,37 @@ class _BackgroundPatternPainter extends CustomPainter {
           ..style = PaintingStyle.fill;
 
         final stepAngle = (2 * math.pi) / rayCount;
+        final stepR = (15.0 * scale).clamp(4.0, 40.0);
 
         for (int i = 0; i < rayCount; i += 2) {
           final startAngle = i * stepAngle;
-          final path = Path()
-            ..moveTo(center.dx, center.dy)
-            ..lineTo(
-              center.dx + radius * math.cos(startAngle),
-              center.dy + radius * math.sin(startAngle),
-            )
-            ..arcTo(
-              Rect.fromCircle(center: center, radius: radius),
-              startAngle,
-              stepAngle,
-              false,
-            )
-            ..close();
-          canvas.drawPath(path, rayPaint);
+          final endAngle = startAngle + stepAngle;
+          if (warp > 0) {
+            final path = Path()..moveTo(center.dx, center.dy);
+            for (double r = stepR; r <= radius; r += stepR) {
+              final curA = startAngle + (r / radius) * (warp * 1.5);
+              path.lineTo(center.dx + r * math.cos(curA), center.dy + r * math.sin(curA));
+            }
+            for (double r = radius; r >= 0; r -= stepR) {
+              final curA = endAngle + (r / radius) * (warp * 1.5);
+              path.lineTo(center.dx + r * math.cos(curA), center.dy + r * math.sin(curA));
+            }
+            path.close();
+            canvas.drawPath(path, rayPaint);
+          } else {
+            final path = Path()
+              ..moveTo(center.dx, center.dy)
+              ..lineTo(
+                center.dx + radius * math.cos(startAngle),
+                center.dy + radius * math.sin(startAngle),
+              )
+              ..lineTo(
+                center.dx + radius * math.cos(endAngle),
+                center.dy + radius * math.sin(endAngle),
+              )
+              ..close();
+            canvas.drawPath(path, rayPaint);
+          }
         }
         break;
     }
@@ -670,6 +895,288 @@ class _BackgroundPatternPainter extends CustomPainter {
   bool shouldRepaint(covariant _BackgroundPatternPainter oldDelegate) {
     return oldDelegate.layer != layer || oldDelegate.bgType != bgType;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pattern Overlay Layer – independent overlay layer (Grid, Dots, Stripes, Rays)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PatternOverlayLayer extends StatelessWidget {
+  const _PatternOverlayLayer({
+    required this.layer,
+    required this.w,
+    required this.h,
+    this.isSelected = false,
+    this.onTap,
+    this.index,
+    this.onPanUpdate,
+    this.onPanEnd,
+    this.onLongPress,
+  });
+
+  final Map<String, dynamic> layer;
+  final double w, h;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final int? index;
+  final void Function(Offset)? onPanUpdate;
+  final VoidCallback? onPanEnd;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final patternType = (layer['pattern_type'] as String?)?.toLowerCase() ??
+        (layer['bg_type'] as String?)?.toLowerCase() ??
+        'grid';
+    final opacity = _f(layer['opacity'] ?? layer['pattern_opacity'], 1.0).clamp(0.0, 1.0);
+    final width = _f(layer['width'], 1.0) * w;
+    final height = _f(layer['height'], 1.0) * h;
+
+    final child = SizedBox(
+      width: width,
+      height: height,
+      child: CustomPaint(
+        size: Size(width, height),
+        painter: _PatternPainter(
+          layer: layer,
+          patternType: patternType,
+        ),
+      ),
+    );
+
+    return _Positioner(
+      layer: layer,
+      w: w,
+      h: h,
+      onTap: onTap,
+      onPanUpdate: onPanUpdate,
+      onPanEnd: onPanEnd,
+      onLongPress: onLongPress,
+      child: _apply3DTransform(
+        _withSelection(
+          Opacity(
+            opacity: opacity,
+            child: child,
+          ),
+          isSelected,
+        ),
+        layer,
+      ),
+    );
+  }
+}
+
+class _PatternPainter extends CustomPainter {
+  const _PatternPainter({
+    required this.layer,
+    required this.patternType,
+  });
+
+  final Map<String, dynamic> layer;
+  final String patternType;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = (size.width / 375.0).clamp(0.2, 20.0);
+    final warp = _f(layer['bg_warp'] ?? layer['warp'], 0.0);
+    final opacity = _f(layer['pattern_opacity'] ?? layer['opacity'], 1.0).clamp(0.0, 1.0);
+
+    switch (patternType) {
+      case 'grid':
+        final gridColor = _color(layer['color'] ?? layer['grid_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: (_f(layer['grid_opacity'], 0.25) * opacity).clamp(0.0, 1.0));
+        final rawLineWidth = _f(layer['grid_line_width'], 1.5);
+        final rawSpacing = _f(layer['grid_spacing'], 32.0);
+        final gridAngle = _f(layer['grid_angle'], 0.0);
+
+        final lineWidth = (rawLineWidth * scale).clamp(0.5, 40.0);
+        final spacing = (rawSpacing * scale).clamp(6.0, 500.0);
+
+        final gridPaint = Paint()
+          ..color = gridColor
+          ..strokeWidth = lineWidth
+          ..style = PaintingStyle.stroke;
+
+        if (gridAngle != 0) {
+          canvas.save();
+          canvas.translate(size.width / 2, size.height / 2);
+          canvas.rotate(gridAngle * math.pi / 180);
+          final diag = math.sqrt(size.width * size.width + size.height * size.height);
+          final stepY = (15.0 * scale).clamp(4.0, 40.0);
+          
+          if (warp > 0) {
+            for (double x = -diag; x <= diag; x += spacing) {
+              final path = Path();
+              path.moveTo(x + math.sin((-diag / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale), -diag);
+              for (double y = -diag + stepY; y <= diag; y += stepY) {
+                final dx = math.sin((y / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x + dx, y);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+            for (double y = -diag; y <= diag; y += spacing) {
+              final path = Path();
+              path.moveTo(-diag, y + math.cos((-diag / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale));
+              for (double x = -diag + stepY; x <= diag; x += stepY) {
+                final dy = math.cos((x / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x, y + dy);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+          } else {
+            for (double x = -diag; x <= diag; x += spacing) {
+              canvas.drawLine(Offset(x, -diag), Offset(x, diag), gridPaint);
+            }
+            for (double y = -diag; y <= diag; y += spacing) {
+              canvas.drawLine(Offset(-diag, y), Offset(diag, y), gridPaint);
+            }
+          }
+          canvas.restore();
+        } else {
+          final stepY = (15.0 * scale).clamp(4.0, 40.0);
+          if (warp > 0) {
+            for (double x = 0; x <= size.width + spacing; x += spacing) {
+              final path = Path();
+              path.moveTo(x + math.sin(x / (60.0 * scale)) * (30.0 * warp * scale), 0);
+              for (double y = stepY; y <= size.height + stepY; y += stepY) {
+                final dx = math.sin((y / (45.0 * scale)) + (x / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x + dx, y);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+            for (double y = 0; y <= size.height + spacing; y += spacing) {
+              final path = Path();
+              path.moveTo(0, y + math.cos(y / (60.0 * scale)) * (30.0 * warp * scale));
+              for (double x = stepY; x <= size.width + stepY; x += stepY) {
+                final dy = math.cos((x / (45.0 * scale)) + (y / (60.0 * scale))) * (30.0 * warp * scale);
+                path.lineTo(x, y + dy);
+              }
+              canvas.drawPath(path, gridPaint);
+            }
+          } else {
+            for (double x = 0; x <= size.width + 1; x += spacing) {
+              canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+            }
+            for (double y = 0; y <= size.height + 1; y += spacing) {
+              canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+            }
+          }
+        }
+        break;
+
+      case 'dots':
+        final dotColor = _color(layer['color'] ?? layer['dot_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: (_f(layer['dot_opacity'], 0.25) * opacity).clamp(0.0, 1.0));
+        final rawDotSize = _f(layer['dot_size'], 4.0);
+        final rawSpacing = _f(layer['dot_spacing'], 24.0);
+
+        final dotRadius = (rawDotSize * scale / 2.0).clamp(0.5, 50.0);
+        final spacing = (rawSpacing * scale).clamp(6.0, 400.0);
+
+        final dotPaint = Paint()
+          ..color = dotColor
+          ..style = PaintingStyle.fill;
+
+        for (double x = spacing / 2; x < size.width + spacing; x += spacing) {
+          for (double y = spacing / 2; y < size.height + spacing; y += spacing) {
+            final dx = warp > 0 ? math.sin((y / (40.0 * scale)) + (x / (50.0 * scale))) * (25.0 * warp * scale) : 0.0;
+            final dy = warp > 0 ? math.cos((x / (40.0 * scale)) + (y / (50.0 * scale))) * (25.0 * warp * scale) : 0.0;
+            canvas.drawCircle(Offset(x + dx, y + dy), dotRadius, dotPaint);
+          }
+        }
+        break;
+
+      case 'stripes':
+        final stripeColor = _color(layer['color'] ?? layer['stripe_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: (_f(layer['stripe_opacity'], 0.20) * opacity).clamp(0.0, 1.0));
+        final rawWidth = _f(layer['stripe_width'], 8.0);
+        final rawSpacing = _f(layer['stripe_spacing'], 28.0);
+        final stripeAngle = _f(layer['stripe_angle'], 45.0);
+
+        final stripeWidth = (rawWidth * scale).clamp(1.0, 100.0);
+        final spacing = (rawSpacing * scale).clamp(4.0, 500.0);
+
+        final stripePaint = Paint()
+          ..color = stripeColor
+          ..strokeWidth = stripeWidth
+          ..style = PaintingStyle.stroke;
+
+        canvas.save();
+        canvas.translate(size.width / 2, size.height / 2);
+        canvas.rotate(stripeAngle * math.pi / 180);
+        final diag = math.sqrt(size.width * size.width + size.height * size.height);
+        final step = spacing + stripeWidth;
+        final stepY = (15.0 * scale).clamp(4.0, 40.0);
+
+        if (warp > 0) {
+          for (double x = -diag; x <= diag; x += step) {
+            final path = Path();
+            path.moveTo(x + math.sin(-diag / (40.0 * scale)) * (25.0 * warp * scale), -diag);
+            for (double y = -diag + stepY; y <= diag; y += stepY) {
+              final dx = math.sin(y / (40.0 * scale)) * (25.0 * warp * scale);
+              path.lineTo(x + dx, y);
+            }
+            canvas.drawPath(path, stripePaint);
+          }
+        } else {
+          for (double x = -diag; x <= diag; x += step) {
+            canvas.drawLine(Offset(x, -diag), Offset(x, diag), stripePaint);
+          }
+        }
+        canvas.restore();
+        break;
+
+      case 'rays':
+        final rayColor = _color(layer['color'] ?? layer['ray_color'] ?? layer['pattern_color'] ?? '#1A6B4A')
+            .withValues(alpha: (_f(layer['ray_opacity'], 0.20) * opacity).clamp(0.0, 1.0));
+        final rayCount = _f(layer['ray_count'], 16).toInt().clamp(4, 72);
+        final center = Offset(size.width / 2, size.height / 2);
+        final radius = math.sqrt(size.width * size.width + size.height * size.height);
+
+        final rayPaint = Paint()
+          ..color = rayColor
+          ..style = PaintingStyle.fill;
+
+        final stepAngle = (2 * math.pi) / rayCount;
+        final stepR = (15.0 * scale).clamp(4.0, 40.0);
+
+        for (int i = 0; i < rayCount; i += 2) {
+          final startAngle = i * stepAngle;
+          final endAngle = startAngle + stepAngle;
+          if (warp > 0) {
+            final path = Path()..moveTo(center.dx, center.dy);
+            for (double r = stepR; r <= radius; r += stepR) {
+              final curA = startAngle + (r / radius) * (warp * 1.5);
+              path.lineTo(center.dx + r * math.cos(curA), center.dy + r * math.sin(curA));
+            }
+            for (double r = radius; r >= 0; r -= stepR) {
+              final curA = endAngle + (r / radius) * (warp * 1.5);
+              path.lineTo(center.dx + r * math.cos(curA), center.dy + r * math.sin(curA));
+            }
+            path.close();
+            canvas.drawPath(path, rayPaint);
+          } else {
+            final path = Path()
+              ..moveTo(center.dx, center.dy)
+              ..lineTo(
+                center.dx + radius * math.cos(startAngle),
+                center.dy + radius * math.sin(startAngle),
+              )
+              ..lineTo(
+                center.dx + radius * math.cos(endAngle),
+                center.dy + radius * math.sin(endAngle),
+              )
+              ..close();
+            canvas.drawPath(path, rayPaint);
+          }
+        }
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PatternPainter old) =>
+      !mapEquals(old.layer, layer) || old.patternType != patternType;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1679,28 +2186,64 @@ class _BlobPainter extends CustomPainter {
   _BlobPainter({required this.color, this.gradient});
   final Color color;
   final Gradient? gradient;
+
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
+    // Web Panel uses transform="translate(50 50) scale(0.9)" in 100x100 viewport
+    final sx = (size.width / 100.0) * 0.9;
+    final sy = (size.height / 100.0) * 0.9;
+
     final path = Path();
-    path.moveTo(cx, cy - size.height * 0.42);
+    path.moveTo(cx + 25.0 * sx, cy - 32.8 * sy);
     path.cubicTo(
-      cx + size.width * 0.52, cy - size.height * 0.42,
-      cx + size.width * 0.50, cy + size.height * 0.15,
-      cx + size.width * 0.35, cy + size.height * 0.40,
+      cx + 33.3 * sx, cy - 29.4 * sy,
+      cx + 41.6 * sx, cy - 22.9 * sy,
+      cx + 46.0 * sx, cy - 14.2 * sy,
     );
     path.cubicTo(
-      cx + size.width * 0.10, cy + size.height * 0.52,
-      cx - size.width * 0.38, cy + size.height * 0.48,
-      cx - size.width * 0.46, cy + size.height * 0.12,
+      cx + 50.5 * sx, cy - 5.5 * sy,
+      cx + 51.0 * sx, cy + 5.5 * sy,
+      cx + 47.0 * sx, cy + 15.1 * sy,
     );
     path.cubicTo(
-      cx - size.width * 0.56, cy - size.height * 0.20,
-      cx - size.width * 0.34, cy - size.height * 0.48,
-      cx, cy - size.height * 0.42,
+      cx + 43.0 * sx, cy + 24.7 * sy,
+      cx + 34.4 * sx, cy + 32.8 * sy,
+      cx + 25.0 * sx, cy + 37.3 * sy,
+    );
+    path.cubicTo(
+      cx + 15.6 * sx, cy + 41.8 * sy,
+      cx + 5.3 * sx, cy + 42.7 * sy,
+      cx - 4.8 * sx, cy + 40.4 * sy,
+    );
+    path.cubicTo(
+      cx - 14.8 * sx, cy + 38.1 * sy,
+      cx - 24.6 * sx, cy + 32.7 * sy,
+      cx - 32.1 * sx, cy + 25.0 * sy,
+    );
+    path.cubicTo(
+      cx - 39.7 * sx, cy + 17.4 * sy,
+      cx - 44.9 * sx, cy + 7.6 * sy,
+      cx - 46.1 * sx, cy - 3.1 * sy,
+    );
+    path.cubicTo(
+      cx - 47.3 * sx, cy - 13.7 * sy,
+      cx - 44.4 * sx, cy - 25.1 * sy,
+      cx - 37.2 * sx, cy - 31.0 * sy,
+    );
+    path.cubicTo(
+      cx - 30.0 * sx, cy - 37.0 * sy,
+      cx - 18.6 * sx, cy - 37.4 * sy,
+      cx - 8.6 * sx, cy - 38.7 * sy,
+    );
+    path.cubicTo(
+      cx + 1.5 * sx, cy - 40.1 * sy,
+      cx + 16.8 * sx, cy - 36.2 * sy,
+      cx + 25.0 * sx, cy - 32.8 * sy,
     );
     path.close();
+
     final paint = Paint();
     if (gradient != null) {
       paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -1711,7 +2254,8 @@ class _BlobPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BlobPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.gradient != gradient;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2335,18 +2879,20 @@ class _DiamondPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final sx = size.width / 100.0;
+    final sy = size.height / 100.0;
     final paint = Paint();
     if (gradient != null) {
       paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     } else {
       paint.color = color;
     }
-    final path = Path();
-    path.moveTo(size.width / 2, 0);
-    path.lineTo(size.width, size.height / 2);
-    path.lineTo(size.width / 2, size.height);
-    path.lineTo(0, size.height / 2);
-    path.close();
+    final path = Path()
+      ..moveTo(50 * sx, 4 * sy)
+      ..lineTo(96 * sx, 50 * sy)
+      ..lineTo(50 * sx, 96 * sy)
+      ..lineTo(4 * sx, 50 * sy)
+      ..close();
     canvas.drawPath(path, paint);
   }
 
@@ -2361,21 +2907,21 @@ class _HeartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final sx = size.width / 100.0;
+    final sy = size.height / 100.0;
     final paint = Paint();
     if (gradient != null) {
       paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     } else {
       paint.color = color;
     }
-    final width = size.width;
-    final height = size.height;
-    final path = Path();
-    path.moveTo(width / 2, height / 4);
-    path.cubicTo(width * 5 / 8, 0, width, 0, width, height * 3 / 8);
-    path.cubicTo(width, height * 5 / 8, width / 2, height * 7 / 8, width / 2, height);
-    path.cubicTo(width / 2, height * 7 / 8, 0, height * 5 / 8, 0, height * 3 / 8);
-    path.cubicTo(0, 0, width * 3 / 8, 0, width / 2, height / 4);
-    path.close();
+    final path = Path()
+      ..moveTo(50 * sx, 25 * sy)
+      ..cubicTo(50 * sx, 10 * sy, 20 * sx, 10 * sy, 20 * sx, 35 * sy)
+      ..cubicTo(20 * sx, 55 * sy, 35 * sx, 72 * sy, 50 * sx, 90 * sy)
+      ..cubicTo(65 * sx, 72 * sy, 80 * sx, 55 * sy, 80 * sx, 35 * sy)
+      ..cubicTo(80 * sx, 10 * sy, 50 * sx, 10 * sy, 50 * sx, 25 * sy)
+      ..close();
     canvas.drawPath(path, paint);
   }
 
@@ -2390,29 +2936,28 @@ class _CrossPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final sx = size.width / 100.0;
+    final sy = size.height / 100.0;
     final paint = Paint();
     if (gradient != null) {
       paint.shader = gradient!.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     } else {
       paint.color = color;
     }
-    final w = size.width;
-    final h = size.height;
-    final p = w * 0.35; // proportion of thickness
-    final path = Path();
-    path.moveTo(p, 0);
-    path.lineTo(w - p, 0);
-    path.lineTo(w - p, p);
-    path.lineTo(w, p);
-    path.lineTo(w, h - p);
-    path.lineTo(w - p, h - p);
-    path.lineTo(w - p, h);
-    path.lineTo(p, h);
-    path.lineTo(p, h - p);
-    path.lineTo(0, h - p);
-    path.lineTo(0, p);
-    path.lineTo(p, p);
-    path.close();
+    final path = Path()
+      ..moveTo(40 * sx, 4 * sy)
+      ..lineTo(60 * sx, 4 * sy)
+      ..lineTo(60 * sx, 40 * sy)
+      ..lineTo(96 * sx, 40 * sy)
+      ..lineTo(96 * sx, 60 * sy)
+      ..lineTo(60 * sx, 60 * sy)
+      ..lineTo(60 * sx, 96 * sy)
+      ..lineTo(40 * sx, 96 * sy)
+      ..lineTo(40 * sx, 60 * sy)
+      ..lineTo(4 * sx, 60 * sy)
+      ..lineTo(4 * sx, 40 * sy)
+      ..lineTo(40 * sx, 40 * sy)
+      ..close();
     canvas.drawPath(path, paint);
   }
 

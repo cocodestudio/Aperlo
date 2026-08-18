@@ -229,7 +229,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final newPath = '$imgPath/${widget.screenshotId}_${index}_imported.$ext';
       await File(picked.path).copy(newPath);
 
-      setState(() => _templateLayers[index]['screenshotPath'] = newPath);
+      setState(() {
+        _templateLayers[index]['screenshotPath'] = newPath;
+        _templateLayers[index]['imageName'] = picked.name;
+      });
       _save();
     } catch (e) {
       debugPrint("Error picking image: $e");
@@ -320,6 +323,145 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     _save();
   }
 
+  void _addNewLayer(String type) {
+    _pushUndo();
+    Map<String, dynamic> newLayer;
+    switch (type) {
+      case 'pattern':
+        newLayer = {
+          'type': 'pattern',
+          'pattern_type': 'grid',
+          'color': '#1A6B4A',
+          'opacity': 0.25,
+          'grid_spacing': 32.0,
+          'grid_line_width': 1.5,
+          'grid_angle': 0.0,
+          'bg_warp': 0.0,
+          'x': 0.0,
+          'y': 0.0,
+          'width': 1.0,
+          'height': 1.0,
+          'pinning': 'bleed',
+        };
+        break;
+      case 'text':
+        newLayer = {
+          'type': 'text',
+          'content': 'Headline Text',
+          'color': '#1A6B4A',
+          'font_size': 0.08,
+          'font_weight': 'bold',
+          'align_x': 'center',
+          'cx': 0.5,
+          'cy': 0.25,
+          'width': 0.85,
+        };
+        break;
+      case 'shape':
+        newLayer = {
+          'type': 'shape',
+          'shape_type': 'blob',
+          'color': '#1A6B4A',
+          'opacity': 0.35,
+          'cx': 0.5,
+          'cy': 0.5,
+          'width': 0.6,
+          'height': 0.6,
+        };
+        break;
+      case 'phone':
+        final existingPhone = _templateLayers
+            .where((l) => l['type'] == 'phone' || l['type'] == 'mockup')
+            .firstOrNull;
+        if (existingPhone != null) {
+          // Clone visual properties from the existing mockup in the template
+          newLayer = Map<String, dynamic>.from(existingPhone);
+          newLayer['type'] = 'phone';
+          // Remove screenshot bindings so the new mockup starts fresh
+          newLayer.remove('screenshot_path');
+          newLayer.remove('screenshotPath');
+          newLayer.remove('image');
+          newLayer.remove('imageName');
+          newLayer.remove('image_path');
+          // Slightly offset position so both mockups are immediately visible
+          final double currentCx = (existingPhone['cx'] as num?)?.toDouble() ?? 0.5;
+          final double currentCy = (existingPhone['cy'] as num?)?.toDouble() ?? 0.55;
+          newLayer['cx'] = (currentCx + 0.05).clamp(0.1, 0.9);
+          newLayer['cy'] = (currentCy + 0.05).clamp(0.1, 0.9);
+        } else {
+          // Default basic 2D properties (no 3D effect applied by default)
+          newLayer = {
+            'type': 'phone',
+            'mockup_style': 'dynamic_island',
+            'style': 'dynamic_island',
+            'frame_color': '#1E1E24',
+            'scale': 0.85,
+            'aspect_ratio': 19.5 / 9,
+            'radius': 38.0,
+            'bezel': 8.0,
+            'cx': 0.5,
+            'cy': 0.55,
+            'rotation': 0.0,
+            'rotation_x': 0.0,
+            'rotation_y': 0.0,
+            'depth': 0.0,
+            'shadow': true,
+            'shadow_style': 'standard',
+            'floor_shadow': false,
+            'opacity': 1.0,
+          };
+        }
+        break;
+      case 'badge':
+        newLayer = {
+          'type': 'badge',
+          'content': 'NEW FEATURE',
+          'color': '#E8F5E9',
+          'text_color': '#1A6B4A',
+          'font_size': 0.03,
+          'cx': 0.5,
+          'cy': 0.15,
+        };
+        break;
+      case 'accent_bar':
+        newLayer = {
+          'type': 'accent_bar',
+          'color': '#1A6B4A',
+          'width': 0.15,
+          'height': 0.006,
+          'cx': 0.5,
+          'cy': 0.35,
+        };
+        break;
+      case 'frosted_panel':
+        newLayer = {
+          'type': 'frosted_panel',
+          'cx': 0.5,
+          'cy': 0.5,
+          'width': 0.85,
+          'height': 0.3,
+          'blur': 15.0,
+          'opacity': 0.6,
+        };
+        break;
+      default:
+        newLayer = {
+          'type': type,
+          'color': '#1A6B4A',
+          'cx': 0.5,
+          'cy': 0.5,
+        };
+        break;
+    }
+
+    setState(() {
+      _templateLayers.add(newLayer);
+      _selectedLayerIndex = _templateLayers.length - 1;
+      _activePropertyCategory = type == 'pattern' ? 'pattern' : null;
+    });
+    _save();
+  }
+
   void _showLayersPanel() {
     showModalBottomSheet(
       context: context,
@@ -336,6 +478,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           builder: (ctx, scroll) => _LayersPanel(
             layers: _templateLayers,
             selectedIndex: _selectedLayerIndex,
+            onAddLayer: (type) {
+              _addNewLayer(type);
+              setSheetState(() {});
+            },
             onReorder: (oldI, newI) {
               _reorderLayers(oldI, newI);
               setSheetState(() {});
@@ -796,19 +942,30 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       options.add(_ToolButton(icon: LucideIcons.type, label: 'Content', isActive: _activePropertyCategory == 'content', onTap: () => toggleCategory('content')));
       options.add(_ToolButton(icon: LucideIcons.palette, label: 'Style', isActive: _activePropertyCategory == 'style', onTap: () => toggleCategory('style')));
       options.add(_ToolButton(icon: LucideIcons.alignCenter, label: 'Align', isActive: _activePropertyCategory == 'align', onTap: () => toggleCategory('align')));
-      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
+    } else if (type == 'pattern' || type == 'pattern_overlay') {
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Pattern', isActive: _activePropertyCategory == 'pattern', onTap: () => toggleCategory('pattern')));
+      options.add(_ToolButton(icon: LucideIcons.waves, label: 'Warp', isActive: _activePropertyCategory == 'warp', onTap: () => toggleCategory('warp')));
+      options.add(_ToolButton(icon: LucideIcons.scaling, label: 'Size', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
     } else if (type == 'phone' || type == 'image') {
       if (type == 'phone') {
         options.add(_ToolButton(icon: LucideIcons.smartphone, label: 'Mockup', isActive: _activePropertyCategory == 'mockup_style', onTap: () => toggleCategory('mockup_style')));
       }
       options.add(_ToolButton(icon: LucideIcons.box, label: '3D & Scale', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
-      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
     } else if (type == 'shape' || type == 'accent_bar' || type == 'divider' || type == 'frosted_panel') {
       options.add(_ToolButton(icon: LucideIcons.palette, label: 'Appearance', isActive: _activePropertyCategory == 'appearance', onTap: () => toggleCategory('appearance')));
       options.add(_ToolButton(icon: LucideIcons.scaling, label: 'Size', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
-      options.add(_ToolButton(icon: LucideIcons.move, label: 'Position', isActive: _activePropertyCategory == 'position', onTap: () => toggleCategory('position')));
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
     } else {
       options.add(_ToolButton(icon: LucideIcons.slidersHorizontal, label: 'Style', isActive: _activePropertyCategory == 'style', onTap: () => toggleCategory('style')));
+      options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
+      options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
     }
 
     if (type != 'background') {
@@ -1177,7 +1334,10 @@ class _FloatingPropertyDock extends StatelessWidget {
       case 'mockup_style': return 'Mockup & Source';
       case 'transform': return '3D & Dimensions';
       case 'appearance': return 'Appearance';
-      case 'position': return 'Position & Alignment';
+      case 'pattern': return 'Pattern Overlay';
+      case 'warp': return 'Warp Distortion';
+      case 'snap': return 'Snap Position';
+      case 'nudge': return 'Position Nudge';
       case 'background': return 'Background Style';
       default: return 'Properties';
     }
@@ -1258,12 +1418,39 @@ class _FloatingPropertyDock extends StatelessWidget {
         );
 
       case 'mockup_style':
+        final screenshotPath = l['screenshotPath'] as String? ?? l['image'] as String? ?? l['src'] as String?;
+        final rawName = l['imageName'] as String? ??
+            (screenshotPath != null && screenshotPath.isNotEmpty
+                ? screenshotPath.split('/').last.split('\\').last
+                : null);
+        final imageName = (rawName != null && rawName.isNotEmpty) ? rawName : null;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             StyledActionTile(
-              label: 'Pick Image',
+              label: imageName ?? 'Pick Image',
               icon: LucideIcons.image,
+              trailing: imageName != null
+                  ? GestureDetector(
+                      onTap: () {
+                        l.remove('screenshotPath');
+                        l.remove('imageName');
+                        l.remove('image');
+                        l.remove('image_url');
+                        l.remove('screenshot');
+                        l.remove('screenshot_url');
+                        onUpdateLayer(l);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkMuted),
+                      ),
+                    )
+                  : null,
               onTap: onPickImage,
             ),
             MockupStyleSelector(
@@ -1297,6 +1484,16 @@ class _FloatingPropertyDock extends StatelessWidget {
                   valueFormatter: (v) => '${v.toStringAsFixed(2)}x',
                   onChanged: (v) { l['aspect_ratio'] = v; onUpdateLayer(l); },
                 ),
+              if (type == 'phone') ...[
+                PropertySlider(
+                  label: '3D Frame Depth',
+                  value: (l['depth'] ?? 0.0).toDouble(),
+                  min: 0.0,
+                  max: 30.0,
+                  valueFormatter: (v) => '${v.toInt()} px',
+                  onChanged: (v) { l['depth'] = v; onUpdateLayer(l); },
+                ),
+              ],
               PropertySlider(
                 label: 'Z-Axis Rotation',
                 value: (l['rotation'] ?? 0.0).toDouble(),
@@ -1369,25 +1566,34 @@ class _FloatingPropertyDock extends StatelessWidget {
           onUpdateLayer: onUpdateLayer,
         );
 
-      case 'position':
-        return Column(
-          children: [
-            PositionPresets(
-              onSnapLeft: () => onSnapLeft(l),
-              onSnapRight: () => onSnapRight(l),
-              onSnapTop: () => onSnapTop(l),
-              onSnapBottom: () => onSnapBottom(l),
-              onSnapCenterH: () => onSnapCenterH(l),
-              onSnapCenterV: () => onSnapCenterV(l),
-            ),
-            const SizedBox(height: 16),
-            StyledPositionNudge(
-              onUp: () => onNudge(l, 0, -0.01),
-              onDown: () => onNudge(l, 0, 0.01),
-              onLeft: () => onNudge(l, -0.01, 0),
-              onRight: () => onNudge(l, 0.01, 0),
-            ),
-          ],
+      case 'pattern':
+        return _PatternDockControlView(
+          layer: l,
+          onUpdateLayer: onUpdateLayer,
+        );
+
+      case 'warp':
+        return _WarpDockControlView(
+          layer: l,
+          onUpdateLayer: onUpdateLayer,
+        );
+
+      case 'snap':
+        return PositionPresets(
+          onSnapLeft: () => onSnapLeft(l),
+          onSnapRight: () => onSnapRight(l),
+          onSnapTop: () => onSnapTop(l),
+          onSnapBottom: () => onSnapBottom(l),
+          onSnapCenterH: () => onSnapCenterH(l),
+          onSnapCenterV: () => onSnapCenterV(l),
+        );
+
+      case 'nudge':
+        return StyledPositionNudge(
+          onUp: () => onNudge(l, 0, -0.01),
+          onDown: () => onNudge(l, 0, 0.01),
+          onLeft: () => onNudge(l, -0.01, 0),
+          onRight: () => onNudge(l, 0.01, 0),
         );
 
       case 'background':
@@ -1707,16 +1913,12 @@ class _BackgroundDockControlView extends StatefulWidget {
 }
 
 class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> {
-  static const _types = ['Solid', 'Gradient', 'Grid', 'Dots', 'Stripes', 'Rays', 'Split'];
+  static const _types = ['Solid', 'Gradient', 'Split'];
 
   String _currentType(Map<String, dynamic> l) {
     final bgType = (l['bg_type'] as String?)?.toLowerCase();
     if (bgType != null && bgType.isNotEmpty) {
       switch (bgType) {
-        case 'grid': return 'Grid';
-        case 'dots': return 'Dots';
-        case 'stripes': return 'Stripes';
-        case 'rays': return 'Rays';
         case 'split': return 'Split';
         case 'linear':
         case 'radial':
@@ -1724,10 +1926,6 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
         case 'solid': return 'Solid';
       }
     }
-    if (l['grid_spacing'] != null || l['grid'] == true) return 'Grid';
-    if (l['dot_spacing'] != null || l['dots'] == true) return 'Dots';
-    if (l['stripe_spacing'] != null || l['stripes'] == true) return 'Stripes';
-    if (l['ray_count'] != null || l['rays'] == true) return 'Rays';
     if (l['split_at'] != null) return 'Split';
     if (l['gradient'] != null || l['radial_gradient'] != null) return 'Gradient';
     return 'Solid';
@@ -1755,33 +1953,12 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
               return GestureDetector(
                 onTap: () {
                   final newLayer = Map<String, dynamic>.from(l);
-                  // Clean all specialized keys to prevent cross-contamination
+                  // Clean specialized keys to prevent cross-contamination
                   newLayer.remove('split_at');
                   newLayer.remove('top_color');
                   newLayer.remove('bottom_color');
                   newLayer.remove('radial_gradient');
                   newLayer.remove('gradient');
-                  newLayer.remove('grid_line_width');
-                  newLayer.remove('grid_spacing');
-                  newLayer.remove('grid_opacity');
-                  newLayer.remove('grid_angle');
-                  newLayer.remove('grid_color');
-                  newLayer.remove('grid');
-                  newLayer.remove('dot_size');
-                  newLayer.remove('dot_spacing');
-                  newLayer.remove('dot_opacity');
-                  newLayer.remove('dot_color');
-                  newLayer.remove('dots');
-                  newLayer.remove('stripe_width');
-                  newLayer.remove('stripe_spacing');
-                  newLayer.remove('stripe_opacity');
-                  newLayer.remove('stripe_angle');
-                  newLayer.remove('stripe_color');
-                  newLayer.remove('stripes');
-                  newLayer.remove('ray_count');
-                  newLayer.remove('ray_opacity');
-                  newLayer.remove('ray_color');
-                  newLayer.remove('rays');
 
                   if (type == 'Solid') {
                     newLayer['bg_type'] = 'solid';
@@ -1791,35 +1968,6 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
                     newLayer['gradient'] = ['#0082FF', '#0040A3'];
                     newLayer['begin'] = 'topCenter';
                     newLayer['end'] = 'bottomCenter';
-                  } else if (type == 'Grid') {
-                    newLayer['bg_type'] = 'grid';
-                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['grid_color'] = newLayer['grid_color'] ?? '#1A6B4A';
-                    newLayer['grid_line_width'] = 1.5;
-                    newLayer['grid_spacing'] = 32.0;
-                    newLayer['grid_opacity'] = 0.15;
-                    newLayer['grid_angle'] = 0.0;
-                  } else if (type == 'Dots') {
-                    newLayer['bg_type'] = 'dots';
-                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['dot_color'] = newLayer['dot_color'] ?? '#1A6B4A';
-                    newLayer['dot_size'] = 3.0;
-                    newLayer['dot_spacing'] = 24.0;
-                    newLayer['dot_opacity'] = 0.20;
-                  } else if (type == 'Stripes') {
-                    newLayer['bg_type'] = 'stripes';
-                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['stripe_color'] = newLayer['stripe_color'] ?? '#1A6B4A';
-                    newLayer['stripe_width'] = 8.0;
-                    newLayer['stripe_spacing'] = 28.0;
-                    newLayer['stripe_opacity'] = 0.15;
-                    newLayer['stripe_angle'] = 45.0;
-                  } else if (type == 'Rays') {
-                    newLayer['bg_type'] = 'rays';
-                    newLayer['bg_color'] = newLayer['bg_color'] ?? newLayer['color'] ?? '#FAF9F6';
-                    newLayer['ray_color'] = newLayer['ray_color'] ?? '#1A6B4A';
-                    newLayer['ray_count'] = 16;
-                    newLayer['ray_opacity'] = 0.15;
                   } else if (type == 'Split') {
                     newLayer['bg_type'] = 'split';
                     newLayer['top_color'] = '#FAF9F6';
@@ -1892,263 +2040,6 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
             },
           ),
         ]
-        // ── Grid Lines ─────────────────────────────────────────────────────
-        else if (selectedType == 'Grid') ...[
-          PropertyColorPicker(
-            label: 'Base Background',
-            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
-            onChanged: (c) {
-              l['bg_color'] = c;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertyColorPicker(
-            label: 'Grid Line Color',
-            hexColor: l['grid_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
-            onChanged: (c) {
-              l['grid_color'] = c;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Line Width',
-            value: (l['grid_line_width'] as num?)?.toDouble() ?? 1.5,
-            min: 0.5,
-            max: 8.0,
-            valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
-            onChanged: (v) {
-              l['grid_line_width'] = v;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Grid Spacing',
-            value: (l['grid_spacing'] as num?)?.toDouble() ?? 32.0,
-            min: 10.0,
-            max: 100.0,
-            valueFormatter: (v) => '${v.toInt()} px',
-            onChanged: (v) {
-              l['grid_spacing'] = v;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Line Opacity',
-            value: (l['grid_opacity'] as num?)?.toDouble() ?? 0.15,
-            min: 0.05,
-            max: 1.0,
-            valueFormatter: (v) => '${(v * 100).toInt()}%',
-            onChanged: (v) {
-              l['grid_opacity'] = v;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Grid Angle',
-            value: (l['grid_angle'] as num?)?.toDouble() ?? 0.0,
-            min: 0.0,
-            max: 90.0,
-            valueFormatter: (v) => '${v.toInt()}°',
-            onChanged: (v) {
-              l['grid_angle'] = v;
-              l['bg_type'] = 'grid';
-              widget.onUpdateLayer(l);
-            },
-          ),
-        ]
-        // ── Dots ───────────────────────────────────────────────────────────
-        else if (selectedType == 'Dots') ...[
-          PropertyColorPicker(
-            label: 'Base Background',
-            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
-            onChanged: (c) {
-              l['bg_color'] = c;
-              l['bg_type'] = 'dots';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertyColorPicker(
-            label: 'Dot Color',
-            hexColor: l['dot_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
-            onChanged: (c) {
-              l['dot_color'] = c;
-              l['bg_type'] = 'dots';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Dot Size',
-            value: (l['dot_size'] as num?)?.toDouble() ?? 3.0,
-            min: 1.0,
-            max: 12.0,
-            valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
-            onChanged: (v) {
-              l['dot_size'] = v;
-              l['bg_type'] = 'dots';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Dot Spacing',
-            value: (l['dot_spacing'] as num?)?.toDouble() ?? 24.0,
-            min: 10.0,
-            max: 80.0,
-            valueFormatter: (v) => '${v.toInt()} px',
-            onChanged: (v) {
-              l['dot_spacing'] = v;
-              l['bg_type'] = 'dots';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Dot Opacity',
-            value: (l['dot_opacity'] as num?)?.toDouble() ?? 0.20,
-            min: 0.05,
-            max: 1.0,
-            valueFormatter: (v) => '${(v * 100).toInt()}%',
-            onChanged: (v) {
-              l['dot_opacity'] = v;
-              l['bg_type'] = 'dots';
-              widget.onUpdateLayer(l);
-            },
-          ),
-        ]
-        // ── Stripes ────────────────────────────────────────────────────────
-        else if (selectedType == 'Stripes') ...[
-          PropertyColorPicker(
-            label: 'Base Background',
-            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
-            onChanged: (c) {
-              l['bg_color'] = c;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertyColorPicker(
-            label: 'Stripe Color',
-            hexColor: l['stripe_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
-            onChanged: (c) {
-              l['stripe_color'] = c;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Stripe Width',
-            value: (l['stripe_width'] as num?)?.toDouble() ?? 8.0,
-            min: 2.0,
-            max: 30.0,
-            valueFormatter: (v) => '${v.toInt()} px',
-            onChanged: (v) {
-              l['stripe_width'] = v;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Stripe Spacing',
-            value: (l['stripe_spacing'] as num?)?.toDouble() ?? 28.0,
-            min: 10.0,
-            max: 80.0,
-            valueFormatter: (v) => '${v.toInt()} px',
-            onChanged: (v) {
-              l['stripe_spacing'] = v;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Stripe Opacity',
-            value: (l['stripe_opacity'] as num?)?.toDouble() ?? 0.15,
-            min: 0.05,
-            max: 1.0,
-            valueFormatter: (v) => '${(v * 100).toInt()}%',
-            onChanged: (v) {
-              l['stripe_opacity'] = v;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Stripe Angle',
-            value: (l['stripe_angle'] as num?)?.toDouble() ?? 45.0,
-            min: 0.0,
-            max: 180.0,
-            valueFormatter: (v) => '${v.toInt()}°',
-            onChanged: (v) {
-              l['stripe_angle'] = v;
-              l['bg_type'] = 'stripes';
-              widget.onUpdateLayer(l);
-            },
-          ),
-        ]
-        // ── Rays ───────────────────────────────────────────────────────────
-        else if (selectedType == 'Rays') ...[
-          PropertyColorPicker(
-            label: 'Base Background',
-            hexColor: l['bg_color'] as String? ?? l['color'] as String? ?? '#FAF9F6',
-            onChanged: (c) {
-              l['bg_color'] = c;
-              l['bg_type'] = 'rays';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertyColorPicker(
-            label: 'Ray Color',
-            hexColor: l['ray_color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
-            onChanged: (c) {
-              l['ray_color'] = c;
-              l['bg_type'] = 'rays';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Ray Count',
-            value: (l['ray_count'] as num?)?.toDouble() ?? 16.0,
-            min: 6.0,
-            max: 36.0,
-            valueFormatter: (v) => '${v.toInt()} rays',
-            onChanged: (v) {
-              l['ray_count'] = v.toInt();
-              l['bg_type'] = 'rays';
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Ray Opacity',
-            value: (l['ray_opacity'] as num?)?.toDouble() ?? 0.15,
-            min: 0.05,
-            max: 1.0,
-            valueFormatter: (v) => '${(v * 100).toInt()}%',
-            onChanged: (v) {
-              l['ray_opacity'] = v;
-              l['bg_type'] = 'rays';
-              widget.onUpdateLayer(l);
-            },
-          ),
-        ]
         // ── Split ──────────────────────────────────────────────────────────
         else ...[
           PropertyColorPicker(
@@ -2190,11 +2081,279 @@ class _BackgroundDockControlViewState extends State<_BackgroundDockControlView> 
             },
           ),
         ],
+        if (selectedType != 'Solid') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Warp Distortion',
+            value: (l['bg_warp'] as num?)?.toDouble() ?? 0.0,
+            min: 0.0,
+            max: 1.0,
+            valueFormatter: (v) => '${(v * 100).toInt()}%',
+            onChanged: (v) {
+              l['bg_warp'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
       ],
     );
   }
 }
 
+
+class _PatternDockControlView extends StatefulWidget {
+  final Map<String, dynamic> layer;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+
+  const _PatternDockControlView({
+    required this.layer,
+    required this.onUpdateLayer,
+  });
+
+  @override
+  State<_PatternDockControlView> createState() => _PatternDockControlViewState();
+}
+
+class _PatternDockControlViewState extends State<_PatternDockControlView> {
+  Widget _typePill(String label, bool isSelected, VoidCallback onTap) {
+    return Material(
+      color: isSelected ? AppColors.accent : AppColors.surfaceMuted,
+      borderRadius: AppRadius.br10,
+      child: InkWell(
+        borderRadius: AppRadius.br10,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Text(
+            label,
+            style: AppText.labelSmall(
+              color: isSelected ? Colors.white : AppColors.inkPrimary,
+            ).copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = widget.layer;
+    final currentType = (l['pattern_type'] as String?)?.toLowerCase() ??
+        (l['bg_type'] as String?)?.toLowerCase() ??
+        'grid';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _typePill('Grid', currentType == 'grid', () {
+                setState(() {
+                  l['pattern_type'] = 'grid';
+                  widget.onUpdateLayer(l);
+                });
+              }),
+              const SizedBox(width: 8),
+              _typePill('Dots', currentType == 'dots', () {
+                setState(() {
+                  l['pattern_type'] = 'dots';
+                  widget.onUpdateLayer(l);
+                });
+              }),
+              const SizedBox(width: 8),
+              _typePill('Stripes', currentType == 'stripes', () {
+                setState(() {
+                  l['pattern_type'] = 'stripes';
+                  widget.onUpdateLayer(l);
+                });
+              }),
+              const SizedBox(width: 8),
+              _typePill('Rays', currentType == 'rays', () {
+                setState(() {
+                  l['pattern_type'] = 'rays';
+                  widget.onUpdateLayer(l);
+                });
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        PropertyColorPicker(
+          label: 'Pattern Color',
+          hexColor: l['color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+          onChanged: (c) {
+            l['color'] = c;
+            l['pattern_color'] = c;
+            widget.onUpdateLayer(l);
+          },
+        ),
+        const SizedBox(height: 8),
+        PropertySlider(
+          label: 'Pattern Opacity',
+          value: ((l['opacity'] ?? l['pattern_opacity'] ?? 0.25) as num).toDouble(),
+          min: 0.05,
+          max: 1.0,
+          valueFormatter: (v) => '${(v * 100).toInt()}%',
+          onChanged: (v) {
+            l['opacity'] = v;
+            l['pattern_opacity'] = v;
+            widget.onUpdateLayer(l);
+          },
+        ),
+        if (currentType == 'grid') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Grid Spacing',
+            value: ((l['grid_spacing'] ?? 32.0) as num).toDouble(),
+            min: 10.0,
+            max: 100.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['grid_spacing'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Line Width',
+            value: ((l['grid_line_width'] ?? 1.5) as num).toDouble(),
+            min: 0.5,
+            max: 10.0,
+            valueFormatter: (v) => v.toStringAsFixed(1),
+            onChanged: (v) {
+              l['grid_line_width'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Angle',
+            value: ((l['grid_angle'] ?? 0.0) as num).toDouble(),
+            min: 0.0,
+            max: 180.0,
+            valueFormatter: (v) => '${v.toInt()}°',
+            onChanged: (v) {
+              l['grid_angle'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else if (currentType == 'dots') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Dot Size',
+            value: ((l['dot_size'] ?? 4.0) as num).toDouble(),
+            min: 1.0,
+            max: 20.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['dot_size'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Dot Spacing',
+            value: ((l['dot_spacing'] ?? 24.0) as num).toDouble(),
+            min: 10.0,
+            max: 80.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['dot_spacing'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else if (currentType == 'stripes') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Width',
+            value: ((l['stripe_width'] ?? 8.0) as num).toDouble(),
+            min: 2.0,
+            max: 40.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['stripe_width'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Spacing',
+            value: ((l['stripe_spacing'] ?? 28.0) as num).toDouble(),
+            min: 8.0,
+            max: 80.0,
+            valueFormatter: (v) => '${v.toInt()} px',
+            onChanged: (v) {
+              l['stripe_spacing'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Stripe Angle',
+            value: ((l['stripe_angle'] ?? 45.0) as num).toDouble(),
+            min: 0.0,
+            max: 180.0,
+            valueFormatter: (v) => '${v.toInt()}°',
+            onChanged: (v) {
+              l['stripe_angle'] = v;
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ] else if (currentType == 'rays') ...[
+          const SizedBox(height: 8),
+          PropertySlider(
+            label: 'Ray Count',
+            value: ((l['ray_count'] ?? 16.0) as num).toDouble(),
+            min: 6.0,
+            max: 36.0,
+            valueFormatter: (v) => '${v.toInt()} rays',
+            onChanged: (v) {
+              l['ray_count'] = v.toInt();
+              widget.onUpdateLayer(l);
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _WarpDockControlView extends StatelessWidget {
+  final Map<String, dynamic> layer;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+
+  const _WarpDockControlView({
+    required this.layer,
+    required this.onUpdateLayer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final warp = ((layer['bg_warp'] ?? layer['warp'] ?? 0.0) as num).toDouble();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PropertySlider(
+          label: 'Warp Distortion',
+          value: warp,
+          min: 0.0,
+          max: 1.0,
+          valueFormatter: (v) => '${(v * 100).toInt()}%',
+          onChanged: (v) {
+            layer['bg_warp'] = v;
+            layer['warp'] = v;
+            onUpdateLayer(layer);
+          },
+        ),
+      ],
+    );
+  }
+}
 
 class _ToolButton extends StatelessWidget {
   const _ToolButton(
@@ -2250,6 +2409,7 @@ class _LayersPanel extends StatelessWidget {
     required this.onToggleVisibility,
     required this.onToggleLock,
     required this.scrollController,
+    this.onAddLayer,
   });
 
   final List<Map<String, dynamic>> layers;
@@ -2260,6 +2420,7 @@ class _LayersPanel extends StatelessWidget {
   final void Function(int index) onDuplicate;
   final void Function(int index) onToggleVisibility;
   final void Function(int index) onToggleLock;
+  final void Function(String type)? onAddLayer;
   final ScrollController scrollController;
 
   static IconData _iconForType(String type) => switch (type) {
@@ -2267,6 +2428,7 @@ class _LayersPanel extends StatelessWidget {
         'text' => LucideIcons.type,
         'phone' => LucideIcons.smartphone,
         'shape' => LucideIcons.shapes,
+        'pattern' || 'pattern_overlay' => LucideIcons.layoutGrid,
         'badge' => LucideIcons.tag,
         'feature_row' => LucideIcons.list,
         'image' => LucideIcons.image,
@@ -2294,6 +2456,10 @@ class _LayersPanel extends StatelessWidget {
         final shape = layer['shape_type'] as String? ?? 'Circle';
         final formattedShape = shape.isNotEmpty ? '${shape[0].toUpperCase()}${shape.substring(1)}' : 'Circle';
         return '$formattedShape Shape';
+      case 'pattern':
+      case 'pattern_overlay':
+        final pType = (layer['pattern_type'] as String? ?? 'grid').toUpperCase();
+        return 'Pattern Overlay ($pType)';
       case 'badge':
         final c = layer['content'] as String? ?? 'Badge';
         return c.length > 22 ? '${c.substring(0, 22)}…' : c;
@@ -2338,12 +2504,229 @@ class _LayersPanel extends StatelessWidget {
         final shape = layer['shape_type'] as String? ?? 'shape';
         details.add(shape);
         break;
+      case 'pattern':
+      case 'pattern_overlay':
+        final pType = layer['pattern_type'] as String? ?? 'grid';
+        details.add(pType);
+        final warp = ((layer['bg_warp'] ?? layer['warp'] ?? 0.0) as num).toDouble();
+        if (warp > 0) details.add('warp ${(warp * 100).toInt()}%');
+        break;
       default:
         break;
     }
 
     if (opacity < 100) details.add('$opacity% opacity');
     return details.isEmpty ? type.toUpperCase() : details.join(' • ');
+  }
+
+  void _showAddMenu(BuildContext context) {
+    final items = [
+      (
+        type: 'text',
+        icon: LucideIcons.type,
+        title: 'Text',
+        subtitle: 'Headlines, subheadings, and typography labels',
+      ),
+      (
+        type: 'phone',
+        icon: LucideIcons.smartphone,
+        title: 'Phone mockup',
+        subtitle: 'Device frame with screenshot viewport',
+      ),
+      (
+        type: 'pattern',
+        icon: LucideIcons.layoutGrid,
+        title: 'Pattern overlay',
+        subtitle: 'Grid, dots, stripes, or sunburst rays with warp',
+      ),
+      (
+        type: 'shape',
+        icon: LucideIcons.shapes,
+        title: 'Shape',
+        subtitle: 'Geometric shapes, blobs, and decorative badges',
+      ),
+      (
+        type: 'accent_bar',
+        icon: LucideIcons.minus,
+        title: 'Accent bar',
+        subtitle: 'Horizontal color highlight or separator',
+      ),
+      (
+        type: 'frosted_panel',
+        icon: LucideIcons.sparkles,
+        title: 'Frosted panel',
+        subtitle: 'Translucent glass card with blur effect',
+      ),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      builder: (ctx) => Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 540),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.r20)),
+            boxShadow: AppShadows.float,
+            border: Border.all(color: AppColors.borderSubtle, width: 1),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ── Drag Handle Pill ─────────────────────────────────────────
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.borderStrong,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // ── Header Row ───────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.accentTint,
+                          borderRadius: AppRadius.br10,
+                          border: Border.all(
+                            color: AppColors.accent.withValues(alpha: 0.25),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          LucideIcons.plus,
+                          size: 18,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Add element',
+                              style: AppText.headline2().copyWith(fontSize: 17),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Select an element to place on your canvas',
+                              style: AppText.bodySmall(color: AppColors.inkMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(LucideIcons.x, size: 14, color: AppColors.inkPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(color: AppColors.borderSubtle, height: 1),
+
+                // ── Elements List ────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: items.map((item) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceMuted.withValues(alpha: 0.45),
+                          borderRadius: AppRadius.br12,
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            splashColor: AppColors.accent.withValues(alpha: 0.12),
+                            highlightColor: AppColors.accent.withValues(alpha: 0.05),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.pop(ctx);
+                              onAddLayer?.call(item.type);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accentTint,
+                                      borderRadius: AppRadius.br10,
+                                      border: Border.all(
+                                        color: AppColors.accent.withValues(alpha: 0.25),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Icon(item.icon, color: AppColors.accent, size: 18),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: AppText.labelLarge().copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          item.subtitle,
+                                          style: AppText.bodySmall(color: AppColors.inkMuted).copyWith(fontSize: 11.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(LucideIcons.chevronRight, size: 15, color: AppColors.inkDisabled),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -2445,6 +2828,27 @@ class _LayersPanel extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (onAddLayer != null)
+                      GestureDetector(
+                        onTap: () => _showAddMenu(context),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentTint,
+                            borderRadius: AppRadius.br10,
+                            border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(LucideIcons.plus, size: 14, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text('Add', style: AppText.labelSmall(color: AppColors.accent).copyWith(fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ),
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: Container(

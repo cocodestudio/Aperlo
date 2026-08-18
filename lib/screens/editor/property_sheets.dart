@@ -935,8 +935,15 @@ class StyledActionTile extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final Widget? trailing;
 
-  const StyledActionTile({super.key, required this.label, required this.icon, required this.onTap});
+  const StyledActionTile({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -973,15 +980,19 @@ class StyledActionTile extends StatelessWidget {
                   child: Icon(icon, size: 16, color: AppColors.accent),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: AppText.labelLarge().copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.labelLarge().copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.inkMuted),
+                const SizedBox(width: 8),
+                trailing ?? const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.inkMuted),
               ],
             ),
           ),
@@ -996,6 +1007,7 @@ class StyledPositionNudge extends StatelessWidget {
   final VoidCallback onDown;
   final VoidCallback onLeft;
   final VoidCallback onRight;
+  final bool showHeader;
 
   const StyledPositionNudge({
     super.key,
@@ -1003,6 +1015,7 @@ class StyledPositionNudge extends StatelessWidget {
     required this.onDown,
     required this.onLeft,
     required this.onRight,
+    this.showHeader = false,
   });
 
   @override
@@ -1010,10 +1023,11 @@ class StyledPositionNudge extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text('Position Nudge', style: AppText.labelLarge()),
-        ),
+        if (showHeader)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Position Nudge', style: AppText.labelLarge()),
+          ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1034,7 +1048,6 @@ class StyledPositionNudge extends StatelessWidget {
             _buildNudgeButton(LucideIcons.arrowDown, onDown),
           ],
         ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -1073,6 +1086,7 @@ class PositionPresets extends StatelessWidget {
   final VoidCallback onSnapBottom;
   final VoidCallback onSnapCenterH;
   final VoidCallback onSnapCenterV;
+  final bool showHeader;
 
   const PositionPresets({
     super.key,
@@ -1082,6 +1096,7 @@ class PositionPresets extends StatelessWidget {
     required this.onSnapBottom,
     required this.onSnapCenterH,
     required this.onSnapCenterV,
+    this.showHeader = false,
   });
 
   @override
@@ -1089,10 +1104,11 @@ class PositionPresets extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text('Snap Position', style: AppText.labelLarge()),
-        ),
+        if (showHeader)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text('Snap Position', style: AppText.labelLarge()),
+          ),
         // Row 1 — horizontal axis
         Row(
           children: [
@@ -1114,7 +1130,6 @@ class PositionPresets extends StatelessWidget {
             _preset('Bottom',   LucideIcons.alignEndVertical,    onSnapBottom),
           ],
         ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -1243,280 +1258,13 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
                 _updateData();
               },
             ),
-          ]),
-        ),
-        PropertySheetSection(
-          title: 'Grid Lines',
-          content: buildSection('Grid Lines Pattern', [
-            PropertyColorPicker(
-              label: 'Base Background',
-              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
-              onChanged: (c) {
-                setState(() {
-                  _data['bg_color'] = c;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
-            PropertyColorPicker(
-              label: 'Grid Line Color',
-              hexColor: _data['grid_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
-              onChanged: (c) {
-                setState(() {
-                  _data['grid_color'] = c;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
             PropertySlider(
-              label: 'Line Width',
-              value: (_data['grid_line_width'] as num?)?.toDouble() ?? 1.5,
-              min: 0.5, max: 8.0,
-              valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['grid_line_width'] = v;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Grid Spacing',
-              value: (_data['grid_spacing'] as num?)?.toDouble() ?? 32.0,
-              min: 10.0, max: 100.0,
-              valueFormatter: (v) => '${v.toInt()} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['grid_spacing'] = v;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Line Opacity',
-              value: (_data['grid_opacity'] as num?)?.toDouble() ?? 0.15,
-              min: 0.05, max: 1.0,
+              label: 'Warp Distortion',
+              value: (_data['bg_warp'] as num?)?.toDouble() ?? 0.0,
+              min: 0.0, max: 1.0,
               valueFormatter: (v) => '${(v * 100).toInt()}%',
               onChanged: (v) {
-                setState(() {
-                  _data['grid_opacity'] = v;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Grid Angle',
-              value: (_data['grid_angle'] as num?)?.toDouble() ?? 0.0,
-              min: 0.0, max: 90.0,
-              valueFormatter: (v) => '${v.toInt()}°',
-              onChanged: (v) {
-                setState(() {
-                  _data['grid_angle'] = v;
-                  _data['bg_type'] = 'grid';
-                });
-                _updateData();
-              },
-            ),
-          ]),
-        ),
-        PropertySheetSection(
-          title: 'Dot Matrix',
-          content: buildSection('Dot Matrix Pattern', [
-            PropertyColorPicker(
-              label: 'Base Background',
-              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
-              onChanged: (c) {
-                setState(() {
-                  _data['bg_color'] = c;
-                  _data['bg_type'] = 'dots';
-                });
-                _updateData();
-              },
-            ),
-            PropertyColorPicker(
-              label: 'Dot Color',
-              hexColor: _data['dot_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
-              onChanged: (c) {
-                setState(() {
-                  _data['dot_color'] = c;
-                  _data['bg_type'] = 'dots';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Dot Size',
-              value: (_data['dot_size'] as num?)?.toDouble() ?? 3.0,
-              min: 1.0, max: 12.0,
-              valueFormatter: (v) => '${v.toStringAsFixed(1)} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['dot_size'] = v;
-                  _data['bg_type'] = 'dots';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Dot Spacing',
-              value: (_data['dot_spacing'] as num?)?.toDouble() ?? 24.0,
-              min: 10.0, max: 80.0,
-              valueFormatter: (v) => '${v.toInt()} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['dot_spacing'] = v;
-                  _data['bg_type'] = 'dots';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Dot Opacity',
-              value: (_data['dot_opacity'] as num?)?.toDouble() ?? 0.20,
-              min: 0.05, max: 1.0,
-              valueFormatter: (v) => '${(v * 100).toInt()}%',
-              onChanged: (v) {
-                setState(() {
-                  _data['dot_opacity'] = v;
-                  _data['bg_type'] = 'dots';
-                });
-                _updateData();
-              },
-            ),
-          ]),
-        ),
-        PropertySheetSection(
-          title: 'Stripes',
-          content: buildSection('Diagonal Stripes', [
-            PropertyColorPicker(
-              label: 'Base Background',
-              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
-              onChanged: (c) {
-                setState(() {
-                  _data['bg_color'] = c;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-            PropertyColorPicker(
-              label: 'Stripe Color',
-              hexColor: _data['stripe_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
-              onChanged: (c) {
-                setState(() {
-                  _data['stripe_color'] = c;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Stripe Width',
-              value: (_data['stripe_width'] as num?)?.toDouble() ?? 8.0,
-              min: 2.0, max: 30.0,
-              valueFormatter: (v) => '${v.toInt()} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['stripe_width'] = v;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Stripe Spacing',
-              value: (_data['stripe_spacing'] as num?)?.toDouble() ?? 28.0,
-              min: 10.0, max: 80.0,
-              valueFormatter: (v) => '${v.toInt()} px',
-              onChanged: (v) {
-                setState(() {
-                  _data['stripe_spacing'] = v;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Stripe Opacity',
-              value: (_data['stripe_opacity'] as num?)?.toDouble() ?? 0.15,
-              min: 0.05, max: 1.0,
-              valueFormatter: (v) => '${(v * 100).toInt()}%',
-              onChanged: (v) {
-                setState(() {
-                  _data['stripe_opacity'] = v;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Stripe Angle',
-              value: (_data['stripe_angle'] as num?)?.toDouble() ?? 45.0,
-              min: 0.0, max: 180.0,
-              valueFormatter: (v) => '${v.toInt()}°',
-              onChanged: (v) {
-                setState(() {
-                  _data['stripe_angle'] = v;
-                  _data['bg_type'] = 'stripes';
-                });
-                _updateData();
-              },
-            ),
-          ]),
-        ),
-        PropertySheetSection(
-          title: 'Sunburst Rays',
-          content: buildSection('Sunburst Rays', [
-            PropertyColorPicker(
-              label: 'Base Background',
-              hexColor: _data['bg_color'] as String? ?? _data['color'] as String? ?? '#FAF9F6',
-              onChanged: (c) {
-                setState(() {
-                  _data['bg_color'] = c;
-                  _data['bg_type'] = 'rays';
-                });
-                _updateData();
-              },
-            ),
-            PropertyColorPicker(
-              label: 'Ray Color',
-              hexColor: _data['ray_color'] as String? ?? _data['pattern_color'] as String? ?? '#1A6B4A',
-              onChanged: (c) {
-                setState(() {
-                  _data['ray_color'] = c;
-                  _data['bg_type'] = 'rays';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Ray Count',
-              value: (_data['ray_count'] as num?)?.toDouble() ?? 16.0,
-              min: 6.0, max: 36.0,
-              valueFormatter: (v) => '${v.toInt()} rays',
-              onChanged: (v) {
-                setState(() {
-                  _data['ray_count'] = v.toInt();
-                  _data['bg_type'] = 'rays';
-                });
-                _updateData();
-              },
-            ),
-            PropertySlider(
-              label: 'Ray Opacity',
-              value: (_data['ray_opacity'] as num?)?.toDouble() ?? 0.15,
-              min: 0.05, max: 1.0,
-              valueFormatter: (v) => '${(v * 100).toInt()}%',
-              onChanged: (v) {
-                setState(() {
-                  _data['ray_opacity'] = v;
-                  _data['bg_type'] = 'rays';
-                });
+                setState(() => _data['bg_warp'] = v);
                 _updateData();
               },
             ),
@@ -1563,6 +1311,16 @@ class _LayerBackgroundEditSheetState extends State<LayerBackgroundEditSheet> {
                   _data['split_at'] = v;
                   _data['bg_type'] = 'split';
                 });
+                _updateData();
+              },
+            ),
+            PropertySlider(
+              label: 'Warp Distortion',
+              value: (_data['bg_warp'] as num?)?.toDouble() ?? 0.0,
+              min: 0.0, max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                setState(() => _data['bg_warp'] = v);
                 _updateData();
               },
             ),
@@ -1729,6 +1487,208 @@ class MockupStyleSelector extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class PatternPropertySheet extends StatelessWidget {
+  final Map<String, dynamic> layer;
+  final ValueChanged<Map<String, dynamic>> onUpdateLayer;
+
+  const PatternPropertySheet({
+    super.key,
+    required this.layer,
+    required this.onUpdateLayer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = Map<String, dynamic>.from(layer);
+    final patternType = (l['pattern_type'] as String?)?.toLowerCase() ?? 'grid';
+
+    return PropertySheetLayout(
+      sections: [
+        PropertySheetSection(
+          title: 'Pattern',
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              buildSection('Pattern Type', [
+                TogglePillGroup(
+                  options: const ['Grid', 'Dots', 'Stripes', 'Rays'],
+                  selectedValue: switch (patternType) {
+                    'dots' => 'Dots',
+                    'stripes' => 'Stripes',
+                    'rays' => 'Rays',
+                    _ => 'Grid',
+                  },
+                  onChanged: (type) {
+                    l['pattern_type'] = type.toLowerCase();
+                    onUpdateLayer(l);
+                  },
+                ),
+              ]),
+              buildSection('Appearance', [
+                PropertyColorPicker(
+                  label: 'Pattern Color',
+                  hexColor: l['color'] as String? ?? l['pattern_color'] as String? ?? '#1A6B4A',
+                  onChanged: (c) {
+                    l['color'] = c;
+                    l['pattern_color'] = c;
+                    onUpdateLayer(l);
+                  },
+                ),
+                const SizedBox(height: 8),
+                PropertySlider(
+                  label: 'Opacity',
+                  value: ((l['opacity'] ?? l['pattern_opacity'] ?? 0.25) as num).toDouble(),
+                  min: 0.05,
+                  max: 1.0,
+                  valueFormatter: (v) => '${(v * 100).toInt()}%',
+                  onChanged: (v) {
+                    l['opacity'] = v;
+                    l['pattern_opacity'] = v;
+                    onUpdateLayer(l);
+                  },
+                ),
+              ]),
+              if (patternType == 'grid')
+                buildSection('Grid Geometry', [
+                  PropertySlider(
+                    label: 'Spacing',
+                    value: ((l['grid_spacing'] ?? 32.0) as num).toDouble(),
+                    min: 10.0,
+                    max: 100.0,
+                    valueFormatter: (v) => '${v.toInt()} px',
+                    onChanged: (v) {
+                      l['grid_spacing'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  PropertySlider(
+                    label: 'Line Width',
+                    value: ((l['grid_line_width'] ?? 1.5) as num).toDouble(),
+                    min: 0.5,
+                    max: 10.0,
+                    valueFormatter: (v) => v.toStringAsFixed(1),
+                    onChanged: (v) {
+                      l['grid_line_width'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  PropertySlider(
+                    label: 'Angle',
+                    value: ((l['grid_angle'] ?? 0.0) as num).toDouble(),
+                    min: 0.0,
+                    max: 180.0,
+                    valueFormatter: (v) => '${v.toInt()}°',
+                    onChanged: (v) {
+                      l['grid_angle'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                ])
+              else if (patternType == 'dots')
+                buildSection('Dot Geometry', [
+                  PropertySlider(
+                    label: 'Dot Size',
+                    value: ((l['dot_size'] ?? 4.0) as num).toDouble(),
+                    min: 1.0,
+                    max: 20.0,
+                    valueFormatter: (v) => '${v.toInt()} px',
+                    onChanged: (v) {
+                      l['dot_size'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  PropertySlider(
+                    label: 'Spacing',
+                    value: ((l['dot_spacing'] ?? 24.0) as num).toDouble(),
+                    min: 10.0,
+                    max: 80.0,
+                    valueFormatter: (v) => '${v.toInt()} px',
+                    onChanged: (v) {
+                      l['dot_spacing'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                ])
+              else if (patternType == 'stripes')
+                buildSection('Stripe Geometry', [
+                  PropertySlider(
+                    label: 'Stripe Width',
+                    value: ((l['stripe_width'] ?? 8.0) as num).toDouble(),
+                    min: 2.0,
+                    max: 40.0,
+                    valueFormatter: (v) => '${v.toInt()} px',
+                    onChanged: (v) {
+                      l['stripe_width'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  PropertySlider(
+                    label: 'Spacing',
+                    value: ((l['stripe_spacing'] ?? 28.0) as num).toDouble(),
+                    min: 8.0,
+                    max: 80.0,
+                    valueFormatter: (v) => '${v.toInt()} px',
+                    onChanged: (v) {
+                      l['stripe_spacing'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  PropertySlider(
+                    label: 'Angle',
+                    value: ((l['stripe_angle'] ?? 45.0) as num).toDouble(),
+                    min: 0.0,
+                    max: 180.0,
+                    valueFormatter: (v) => '${v.toInt()}°',
+                    onChanged: (v) {
+                      l['stripe_angle'] = v;
+                      onUpdateLayer(l);
+                    },
+                  ),
+                ])
+              else if (patternType == 'rays')
+                buildSection('Ray Geometry', [
+                  PropertySlider(
+                    label: 'Ray Count',
+                    value: ((l['ray_count'] ?? 16.0) as num).toDouble(),
+                    min: 6.0,
+                    max: 36.0,
+                    valueFormatter: (v) => '${v.toInt()} rays',
+                    onChanged: (v) {
+                      l['ray_count'] = v.toInt();
+                      onUpdateLayer(l);
+                    },
+                  ),
+                ]),
+            ],
+          ),
+        ),
+        PropertySheetSection(
+          title: 'Warp',
+          content: buildSection('Warp Distortion', [
+            PropertySlider(
+              label: 'Warp Distortion',
+              value: ((l['bg_warp'] ?? l['warp'] ?? 0.0) as num).toDouble(),
+              min: 0.0,
+              max: 1.0,
+              valueFormatter: (v) => '${(v * 100).toInt()}%',
+              onChanged: (v) {
+                l['bg_warp'] = v;
+                l['warp'] = v;
+                onUpdateLayer(l);
+              },
+            ),
+          ]),
+        ),
       ],
     );
   }

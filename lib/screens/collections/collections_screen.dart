@@ -54,13 +54,14 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.s16),
-            child: _HeaderAction(
-              icon: LucideIcons.plus,
-              onTap: () => _showNewCollectionDialog(context),
+          if (collectionsAsync.valueOrNull?.isNotEmpty ?? false)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.s16),
+              child: _HeaderAction(
+                icon: LucideIcons.plus,
+                onTap: () => _showNewCollectionDialog(context),
+              ),
             ),
-          ),
         ],
       ),
       body: Column(

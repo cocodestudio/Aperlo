@@ -16,15 +16,6 @@ class FCMService {
       FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
-    // Request permissions
-    try {
-      await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-    } catch (_) {}
-
     // Subscribe to topics in background with resilient auto-retry
     _subscribeToTopics();
     _messaging.onTokenRefresh.listen((_) {
@@ -58,9 +49,6 @@ class FCMService {
           enableVibration: true,
         ),
       );
-      try {
-        await androidImplementation.requestNotificationsPermission();
-      } catch (_) {}
     }
 
     await _messaging.setForegroundNotificationPresentationOptions(
@@ -88,6 +76,44 @@ class FCMService {
       Future.delayed(const Duration(milliseconds: 500), () {
         _handleMessageRoute(initialMessage);
       });
+    }
+  }
+
+  /// Request notification permission on demand
+  static Future<bool> requestNotificationPermission() async {
+    try {
+      final settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
+      final androidImplementation = _localNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        try {
+          await androidImplementation.requestNotificationsPermission();
+        } catch (_) {}
+      }
+
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (e) {
+      debugPrint("Error requesting notification permission: $e");
+      return false;
+    }
+  }
+
+  /// Check whether notification permission has been granted
+  static Future<bool> isNotificationPermissionGranted() async {
+    try {
+      final settings = await _messaging.getNotificationSettings();
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (_) {
+      return false;
     }
   }
 
