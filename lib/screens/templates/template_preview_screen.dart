@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
@@ -199,6 +200,18 @@ class _TemplatePreviewView extends ConsumerStatefulWidget {
 
 class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
   bool _loading = false;
+
+  void _shareTemplate() {
+    HapticFeedback.selectionClick();
+    final url = 'https://aperlo.cocodestudio.com/template/${widget.template.id}';
+    final text = 'Check out "${widget.template.name}" template on Aperlo:\n$url';
+    SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: widget.template.name,
+      ),
+    );
+  }
 
   Future<void> _useTemplate() async {
     final collections = ref.read(collectionsProvider).valueOrNull ?? [];
@@ -720,24 +733,53 @@ class _TemplatePreviewViewState extends ConsumerState<_TemplatePreviewView> {
         ),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 520),
-          child: template.isPro
-              ? AppButton(
-                  label: 'Unlock with PRO',
-                  onPressed: () => AppToast.show(
-                    context,
-                    message: 'PRO feature coming soon',
-                    type: AppToastType.info,
-                  ),
-                  leadingIcon: const Icon(LucideIcons.lock, size: 18),
-                  isFullWidth: true,
-                )
-              : AppButton(
-                  label: 'Use template',
-                  onPressed: _loading ? null : _useTemplate,
-                  isLoading: _loading,
-                  leadingIcon: const Icon(LucideIcons.sparkles, size: 18),
-                  isFullWidth: true,
+          child: Row(
+            children: [
+              Container(
+                height: 48,
+                width: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.borderDefault, width: 1.2),
                 ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _shareTemplate,
+                    child: const Center(
+                      child: Icon(
+                        LucideIcons.share2,
+                        size: 20,
+                        color: AppColors.inkPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: template.isPro
+                    ? AppButton(
+                        label: 'Unlock with PRO',
+                        onPressed: () => AppToast.show(
+                          context,
+                          message: 'PRO feature coming soon',
+                          type: AppToastType.info,
+                        ),
+                        leadingIcon: const Icon(LucideIcons.lock, size: 18),
+                        isFullWidth: true,
+                      )
+                    : AppButton(
+                        label: 'Use template',
+                        onPressed: _loading ? null : _useTemplate,
+                        isLoading: _loading,
+                        isFullWidth: true,
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

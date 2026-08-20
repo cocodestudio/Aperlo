@@ -101,6 +101,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
+        path: '/template/:templateId',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => TemplatePreviewScreen(
+          templateId: state.pathParameters['templateId']!,
+          preselectedCollectionId: state.extra as String?,
+        ),
+      ),
+      GoRoute(
         path: '/editor/:screenshotId',
         builder: (context, state) => EditorScreen(
           screenshotId: state.pathParameters['screenshotId']!,

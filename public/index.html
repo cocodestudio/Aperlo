@@ -1,96 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Aperlo - App Store Screenshot Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Aperlo — App Store Screenshot Maker</title>
+  <meta name="description" content="Create stunning, high-fidelity App Store and Google Play screenshots in seconds.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #F5F7F5;
       color: #141A14;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
       text-align: center;
-      padding: 20px;
     }
-    .container {
-      background: white;
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-      max-width: 400px;
+    .card {
+      background: #FFFFFF;
+      border: 1px solid #E6EAE7;
+      padding: 44px 32px;
+      border-radius: 24px;
+      box-shadow: 0 20px 48px -12px rgba(20, 26, 20, 0.08);
+      max-width: 440px;
       width: 100%;
+      position: relative;
+    }
+    .logo-container {
+      width: 68px;
+      height: 68px;
+      background: #E8F5E9;
+      border: 1px solid rgba(26, 107, 74, 0.2);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 24px -4px rgba(26, 107, 74, 0.2);
+    }
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      fill: #1A6B4A;
     }
     h1 {
-      font-size: 24px;
-      margin-bottom: 10px;
+      font-family: 'Syne', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      color: #141A14;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      font-weight: 600;
       color: #1A6B4A;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
     }
     p {
-      font-size: 16px;
+      font-size: 15px;
       color: #6C7A72;
-      margin-bottom: 30px;
-      line-height: 1.5;
+      line-height: 1.55;
+      margin-bottom: 28px;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .btn {
-      display: inline-block;
-      background-color: #1A6B4A;
-      color: white;
-      padding: 14px 28px;
-      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border-radius: 9999px;
       text-decoration: none;
-      font-weight: bold;
-      font-size: 16px;
-      transition: background-color 0.2s;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      cursor: pointer;
     }
-    .btn:hover {
-      background-color: #124d35;
+    .btn-primary {
+      background-color: #1A6B4A;
+      color: #FFFFFF;
+      border: 1px solid #1A6B4A;
+      box-shadow: 0 4px 16px rgba(26, 107, 74, 0.25);
+    }
+    .btn-primary:hover {
+      background-color: #14553A;
+      border-color: #14553A;
+    }
+    .btn-secondary {
+      background-color: #F5F7F5;
+      color: #141A14;
+      border: 1px solid #E6EAE7;
+    }
+    .btn-secondary:hover {
+      background-color: #ECEEEC;
+    }
+    .footer-brand {
+      margin-top: 24px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #8C9991;
+      letter-spacing: 0.5px;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>View this Template</h1>
-    <p>To view and edit this template, you need the Aperlo app. Download it now to start creating beautiful app store screenshots.</p>
-    <a href="#" id="store-link" class="btn">Download Aperlo</a>
+  <div class="card">
+    <div class="logo-container">
+      <svg class="logo-icon" viewBox="0 0 24 24">
+        <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm2 0v12h12V6H6zm2 2h8v2H8V8zm0 4h8v2H8v-2zm0 4h5v2H8v-2z"/>
+      </svg>
+    </div>
+    
+    <h1 id="title-text">Opening Template</h1>
+    <div class="subtitle">Aperlo Studio</div>
+    
+    <p id="desc-text">Attempting to open this screenshot template in Aperlo. If you don't have the app installed, you will be redirected to our website.</p>
+
+    <div class="btn-group">
+      <a href="https://aperlo.cocodestudio.com" id="btn-open-app" class="btn btn-primary">
+        <span class="spinner" id="btn-spinner"></span>
+        <span id="btn-app-text">Open in Aperlo</span>
+      </a>
+      <a href="https://aperlo.cocodestudio.com" id="btn-website" class="btn btn-secondary">
+        Go to Aperlo Website
+      </a>
+    </div>
   </div>
 
+  <div class="footer-brand">by CoCode Studio</div>
+
   <script>
-    function getMobileOperatingSystem() {
-      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      if (/android/i.test(userAgent)) {
-        return "Android";
-      }
-      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-        return "iOS";
-      }
-      return "unknown";
-    }
+    (function() {
+      var MAIN_WEBSITE_URL = 'https://aperlo.cocodestudio.com';
+      var path = window.location.pathname;
+      var templateId = '';
 
-    var os = getMobileOperatingSystem();
-    var storeLink = document.getElementById('store-link');
-    
-    // Replace these placeholders with actual store links later
-    var iosLink = "https://apps.apple.com/app/id123456789"; 
-    var androidLink = "https://play.google.com/store/apps/details?id=com.cocode.aperlo";
+      var match = path.match(/\/(?:template|templates)\/([^\/?#]+)/i);
+      if (match && match[1]) {
+        templateId = match[1];
+      }
 
-    if (os === "iOS") {
-      storeLink.href = iosLink;
-      storeLink.innerText = "Download on the App Store";
-      window.location.href = iosLink; // Auto-redirect
-    } else if (os === "Android") {
-      storeLink.href = androidLink;
-      storeLink.innerText = "Get it on Google Play";
-      window.location.href = androidLink; // Auto-redirect
-    } else {
-      storeLink.href = iosLink; // Fallback for desktop
-      storeLink.innerText = "Download App";
-    }
+      var customSchemeUrl = templateId ? ('aperlo://template/' + templateId) : 'aperlo://home';
+      var btnOpenApp = document.getElementById('btn-open-app');
+      var btnWebsite = document.getElementById('btn-website');
+      var spinner = document.getElementById('btn-spinner');
+
+      btnOpenApp.href = customSchemeUrl;
+      btnWebsite.href = MAIN_WEBSITE_URL;
+
+      // If user came via a template link, attempt to open custom scheme
+      if (templateId) {
+        // Try opening custom scheme on mobile
+        var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = customSchemeUrl;
+
+          // If the app is not installed, fallback and redirect to main website after 2 seconds
+          var fallbackTimer = setTimeout(function() {
+            if (!document.hidden) {
+              window.location.href = MAIN_WEBSITE_URL;
+            }
+          }, 2000);
+
+          window.addEventListener('blur', function() {
+            clearTimeout(fallbackTimer);
+          });
+          document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+              clearTimeout(fallbackTimer);
+            }
+          });
+        } else {
+          // On desktop, remove spinner
+          if (spinner) spinner.style.display = 'none';
+        }
+      } else {
+        if (spinner) spinner.style.display = 'none';
+      }
+    })();
   </script>
 </body>
 </html>

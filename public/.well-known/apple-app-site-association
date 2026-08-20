@@ -5,6 +5,7 @@
       {
         "appID": "TEAMID.com.cocode.aperlo",
         "paths": [
+          "/template/*",
           "/templates/*"
         ]
       }
