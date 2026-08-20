@@ -56,6 +56,22 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             _templateLayers.map((l) => Map<String, dynamic>.from(l))),
       );
 
+  List<String> get _usedFonts {
+    final fonts = <String>{};
+    for (final layer in _templateLayers) {
+      if (layer['type'] == 'text') {
+        final font = (layer['font'] ?? layer['font_family'] ?? layer['fontFamily']) as String?;
+        if (font != null && font.trim().isNotEmpty) {
+          fonts.add(font.trim());
+        }
+      }
+    }
+    if (_headlineFont.trim().isNotEmpty) fonts.add(_headlineFont.trim());
+    if (_subheadlineFont.trim().isNotEmpty) fonts.add(_subheadlineFont.trim());
+    if (fonts.isEmpty) return const ['Syne'];
+    return fonts.toList();
+  }
+
   void _pushUndo() {
     _undoStack.add(_currentSnapshot);
     if (_undoStack.length > 50) _undoStack.removeAt(0);
@@ -345,10 +361,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         };
         break;
       case 'text':
+        final availableFonts = _usedFonts;
+        // Use a simple pseudo-random approach without importing dart:math just for this
+        final randomFont = availableFonts[(DateTime.now().millisecondsSinceEpoch % availableFonts.length)];
         newLayer = {
           'type': 'text',
           'content': 'Headline Text',
           'color': '#1A6B4A',
+          'font': randomFont,
           'font_size': 0.08,
           'font_weight': 'bold',
           'align_x': 'center',
@@ -822,6 +842,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                           selectedLayerIndex: activeLayerIndex,
                           layer: selectedLayer,
                           templateData: _templateData,
+                          availableFonts: _usedFonts,
                           onClose: () => setState(() => _activePropertyCategory = null),
                           onUpdateLayer: (updatedLayer) {
                             final idxToUpdate = activeLayerIndex;
@@ -1313,12 +1334,14 @@ class _FloatingPropertyDock extends StatelessWidget {
     required this.onSnapCenterH,
     required this.onSnapCenterV,
     required this.onNudge,
+    required this.availableFonts,
   });
 
   final String category;
   final int? selectedLayerIndex;
   final Map<String, dynamic>? layer;
   final TemplateData templateData;
+  final List<String> availableFonts;
   final VoidCallback onClose;
   final ValueChanged<Map<String, dynamic>> onUpdateLayer;
   final ValueChanged<TemplateData> onUpdateTemplateData;
@@ -1387,6 +1410,17 @@ class _FloatingPropertyDock extends StatelessWidget {
       case 'style':
         return Column(
           children: [
+            if (type == 'text') ...[
+              PropertyDropdown(
+                label: 'Font',
+                value: (l['font'] ?? l['font_family'] ?? l['fontFamily']) as String? ?? availableFonts.first,
+                items: availableFonts,
+                onChanged: (v) {
+                  l['font'] = v;
+                  onUpdateLayer(l);
+                },
+              ),
+            ],
             StyledInputNumeric(
               label: 'Font Size',
               value: ((l['font_size'] ?? 0.08) as num).toDouble() * 390.0,

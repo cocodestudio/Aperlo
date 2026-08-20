@@ -1249,11 +1249,11 @@ class _TextLayer extends StatelessWidget {
             ? subheadlineColor!
             : defaultColor;
 
-    final fontName = token == 'headline'
+    final fontName = layer['font'] as String? ?? (token == 'headline'
         ? headlineFont
         : token == 'subheadline'
             ? subheadlineFont
-            : (layer['font'] as String? ?? 'DM Sans');
+            : 'DM Sans');
 
     final opacity = _f(layer['opacity'], 1.0);
 
