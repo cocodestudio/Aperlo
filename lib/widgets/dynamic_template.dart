@@ -53,11 +53,9 @@ class TemplateData {
 //                    bar_notch | punch_hole | flat | none)
 //   shape          – circle, rect, rounded_rect, polygon, arc, ring, blob,
 //                    diagonal_split, star
-//   accent_bar     – thin colored bar / divider
 //   badge          – pill-shaped label with optional icon char
 //   feature_row    – icon char + text row (for feature lists)
 //   image          – network or asset image with fit / opacity
-//   frosted_panel  – blurred glass panel with optional border
 //   divider        – horizontal rule
 //
 // All x/y/width/height values are 0.0–1.0 fractions of canvas size.
@@ -247,19 +245,7 @@ class DynamicTemplate extends StatelessWidget {
           onTap: onTap,
           index: index,
         );
-      case 'accent_bar':
-        return _AccentBar(
-          layer: layer,
-          w: w,
-          h: h,
-          onPanUpdate: onPanUpdate,
-          onPanEnd: (isSelected && onPanEndLayer != null) ? () => onPanEndLayer!(index) : null,
-          onLongPress: null,
-          isSelected: isSelected,
-          onTap: onTap,
-          index: index,
-        );
-      case 'badge':
+            case 'badge':
         return _BadgeLayer(
           layer: layer,
           w: w,
@@ -297,21 +283,7 @@ class DynamicTemplate extends StatelessWidget {
           onTap: onTap,
           index: index,
         );
-      case 'frosted_panel':
-        return _FrostedPanel(
-          layer: layer,
-          w: w,
-          h: h,
-          onPanUpdate: onPanUpdate,
-          onPanEnd: (isSelected && onPanEndLayer != null) ? () => onPanEndLayer!(index) : null,
-          onLongPress: null,
-          headline: headline,
-          subheadline: subheadline,
-          isSelected: isSelected,
-          onTap: onTap,
-          index: index,
-        );
-      case 'divider':
+            case 'divider':
         return _DividerLayer(
           layer: layer,
           w: canvasWidth,
@@ -2262,58 +2234,6 @@ class _BlobPainter extends CustomPainter {
 // Accent Bar
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AccentBar extends StatelessWidget {
-  const _AccentBar({
-    required this.layer,
-    required this.w,
-    required this.h,
-    this.isSelected = false,
-    this.onTap,
-    this.index,
-    this.onPanUpdate,
-    this.onPanEnd,
-    this.onLongPress,
-  });
-  final VoidCallback? onTap;
-  final int? index;
-  final Map<String, dynamic> layer;
-  final double w, h;
-  final void Function(Offset)? onPanUpdate;
-  final VoidCallback? onPanEnd;
-  final VoidCallback? onLongPress;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-//     final x = _f(layer['x']) * w;
-//     final y = _f(layer['y']) * h;
-    final barW = _f(layer['width'], 0.08) * w;
-    final barH = _f(layer['height'], 0.004) * (w * 844 / 390);
-    final color = _color(layer['color'], const Color(0xFF1A6B4A));
-
-    return _Positioner(
-      layer: layer, w: w, h: h,
-      onTap: onTap,
-      onPanUpdate: onPanUpdate,
-      onPanEnd: onPanEnd,
-      onLongPress: onLongPress,
-      child: _apply3DTransform(
-        _withSelection(
-          Container(
-            width: barW,
-            height: barH,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(barH / 2),
-            ),
-          ),
-          isSelected,
-        ),
-        layer,
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Badge Layer – pill-shaped chip
@@ -2626,99 +2546,6 @@ class _ImageLayer extends StatelessWidget {
 //   text_color, font, font_size
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _FrostedPanel extends StatelessWidget {
-  const _FrostedPanel({
-    required this.layer,
-    required this.w,
-    required this.h,
-    required this.headline,
-    required this.subheadline,
-    this.isSelected = false,
-    this.onTap,
-    this.index,
-    this.onPanUpdate,
-    this.onPanEnd,
-    this.onLongPress,
-  });
-  final VoidCallback? onTap;
-  final int? index;
-  final Map<String, dynamic> layer;
-  final double w, h;
-  final String headline, subheadline;
-  final bool isSelected;
-  final void Function(Offset)? onPanUpdate;
-  final VoidCallback? onPanEnd;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-//     final x = _f(layer['x']) * w;
-//     final y = _f(layer['y']) * h;
-    final pw = _f(layer['width'], 0.8) * w;
-    final ph = _f(layer['height'], 0.15) * (w * 844 / 390);
-    final blur = _f(layer['blur'], 12.0);
-    final tint =
-        _color(layer['color'], const Color(0x80FFFFFF));
-    final cr = _f(layer['corner_radius'], 16.0) * (w / 390.0);
-    final borderColor = layer['border_color'] != null
-        ? _color(layer['border_color'])
-        : Colors.white.withValues(alpha: 0.3);
-    final borderWidth = _f(layer['border_width'], 1.0) * (w / 390.0);
-
-    final rawContent = layer['content'] as String?;
-    final content = rawContent != null
-        ? _resolveText(rawContent, headline, subheadline)
-        : null;
-    final textColor =
-        _color(layer['text_color'], const Color(0xFF141A14));
-    final fontSize = _f(layer['font_size'], 0.04) * w;
-    final fontName = layer['font'] as String? ?? 'DM Sans';
-
-    return _Positioner(
-      layer: layer, w: w, h: h,
-      onTap: onTap,
-      onPanUpdate: onPanUpdate,
-      onPanEnd: onPanEnd,
-      onLongPress: onLongPress,
-      child: _apply3DTransform(
-        _withSelection(
-          ClipRRect(
-            borderRadius: BorderRadius.circular(cr), child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: blur),
-              child: Container(
-                width: pw,
-                height: ph,
-                decoration: BoxDecoration(
-                  color: tint,
-                  borderRadius: BorderRadius.circular(cr),
-                  border: Border.all(color: borderColor, width: borderWidth),
-                ),
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 16 * (w / 390.0), vertical: 12 * (w / 390.0)),
-                child: content != null
-                    ? Text(
-                        content,
-                        textAlign: TextAlign.center,
-                        style: _googleFont(
-                          fontName,
-                          TextStyle(
-                            fontSize: fontSize,
-                            color: textColor,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-          ),
-          isSelected,
-        ),
-        layer,
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Divider Layer

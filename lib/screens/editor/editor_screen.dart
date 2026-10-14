@@ -443,27 +443,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           'cy': 0.15,
         };
         break;
-      case 'accent_bar':
-        newLayer = {
-          'type': 'accent_bar',
-          'color': '#1A6B4A',
-          'width': 0.15,
-          'height': 0.006,
-          'cx': 0.5,
-          'cy': 0.35,
-        };
-        break;
-      case 'frosted_panel':
-        newLayer = {
-          'type': 'frosted_panel',
-          'cx': 0.5,
-          'cy': 0.5,
-          'width': 0.85,
-          'height': 0.3,
-          'blur': 15.0,
-          'opacity': 0.6,
-        };
-        break;
       default:
         newLayer = {
           'type': type,
@@ -978,7 +957,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       options.add(_ToolButton(icon: LucideIcons.box, label: '3D & Scale', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
       options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
       options.add(_ToolButton(icon: LucideIcons.move, label: 'Nudge', isActive: _activePropertyCategory == 'nudge', onTap: () => toggleCategory('nudge')));
-    } else if (type == 'shape' || type == 'accent_bar' || type == 'divider' || type == 'frosted_panel') {
+    } else if (type == 'shape' || type == 'divider') {
       options.add(_ToolButton(icon: LucideIcons.palette, label: 'Appearance', isActive: _activePropertyCategory == 'appearance', onTap: () => toggleCategory('appearance')));
       options.add(_ToolButton(icon: LucideIcons.scaling, label: 'Size', isActive: _activePropertyCategory == 'transform', onTap: () => toggleCategory('transform')));
       options.add(_ToolButton(icon: LucideIcons.layoutGrid, label: 'Snap', isActive: _activePropertyCategory == 'snap', onTap: () => toggleCategory('snap')));
@@ -1903,32 +1882,6 @@ class _ShapeAppearanceDockControlViewState extends State<_ShapeAppearanceDockCon
             },
           ),
         ],
-        if (type == 'frosted_panel') ...[
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Border Radius',
-            value: (l['border_radius'] as num?)?.toDouble() ?? 12.0,
-            min: 0.0,
-            max: 100.0,
-            onChanged: (v) {
-              l['border_radius'] = v;
-              widget.onUpdateLayer(l);
-            },
-          ),
-          const SizedBox(height: 8),
-          PropertySlider(
-            label: 'Blur Amount',
-            value: (l['blur'] as num?)?.toDouble() ?? 10.0,
-            min: 0.0,
-            max: 40.0,
-            valueFormatter: (v) => '${v.toInt()} px',
-            onChanged: (v) {
-              l['blur'] = v;
-              widget.onUpdateLayer(l);
-            },
-          ),
-        ],
-      ],
     );
   }
 }
@@ -2466,8 +2419,6 @@ class _LayersPanel extends StatelessWidget {
         'badge' => LucideIcons.tag,
         'feature_row' => LucideIcons.list,
         'image' => LucideIcons.image,
-        'frosted_panel' => LucideIcons.layers,
-        'accent_bar' => LucideIcons.minus,
         'divider' => LucideIcons.minus,
         _ => LucideIcons.box,
       };
@@ -2504,10 +2455,6 @@ class _LayersPanel extends StatelessWidget {
         return '$icon $formatted';
       case 'image':
         return 'Image Element';
-      case 'frosted_panel':
-        return 'Frosted Panel';
-      case 'accent_bar':
-        return 'Accent Bar';
       case 'divider':
         return 'Divider';
       default:
@@ -2578,18 +2525,6 @@ class _LayersPanel extends StatelessWidget {
         icon: LucideIcons.shapes,
         title: 'Shape',
         subtitle: 'Geometric shapes, blobs, and decorative badges',
-      ),
-      (
-        type: 'accent_bar',
-        icon: LucideIcons.minus,
-        title: 'Accent bar',
-        subtitle: 'Horizontal color highlight or separator',
-      ),
-      (
-        type: 'frosted_panel',
-        icon: LucideIcons.sparkles,
-        title: 'Frosted panel',
-        subtitle: 'Translucent glass card with blur effect',
       ),
     ];
 
